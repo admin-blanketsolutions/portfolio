@@ -1,66 +1,81 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blanket Solutions LLC - Portfolio</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--color-text-primary); background: var(--color-background-primary); }
-        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
-        header { text-align: center; margin-bottom: 4rem; padding-bottom: 2rem; border-bottom: 1px solid var(--color-border-tertiary); }
-        h1 { font-size: 32px; font-weight: 500; margin-bottom: 0.5rem; }
-        .tagline { font-size: 18px; color: var(--color-text-secondary); }
-        .projects { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; margin-bottom: 3rem; }
-        .project-card { border: 1px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.5rem; transition: border-color 0.2s; }
-        .project-card:hover { border-color: var(--color-border-primary); }
-        .project-card h3 { font-size: 20px; font-weight: 500; margin-bottom: 0.75rem; }
-        .project-card p { font-size: 14px; color: var(--color-text-secondary); line-height: 1.6; margin-bottom: 1rem; }
-        .project-card a { color: var(--color-text-primary); text-decoration: none; font-weight: 500; border-bottom: 2px solid var(--color-text-primary); }
-        .project-card a:hover { opacity: 0.7; }
-        .badge { display: inline-block; background: var(--color-background-secondary); color: var(--color-text-primary); padding: 0.3rem 0.75rem; border-radius: 4px; font-size: 12px; margin-top: 0.5rem; margin-right: 0.5rem; }
-        footer { text-align: center; margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--color-border-tertiary); color: var(--color-text-secondary); font-size: 14px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header>
-            <h1>Blanket Solutions LLC</h1>
-            <p class="tagline">Custom Development & AI Integration Solutions</p>
-        </header>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.hero { background: linear-gradient(135deg, #1a0d3d 0%, #2d1b69 50%, #1e3a8a 100%); color: white; padding: 4rem 2rem; text-align: center; position: relative; overflow: hidden; }
+.hero::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 20% 50%, rgba(147, 51, 234, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 50%); pointer-events: none; }
+.hero-content { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; }
+.logo { font-size: 32px; font-weight: 600; margin-bottom: 1rem; background: linear-gradient(135deg, #a78bfa 0%, #60a5fa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.hero h1 { font-size: 48px; font-weight: 700; margin-bottom: 1rem; line-height: 1.2; }
+.hero p { font-size: 18px; opacity: 0.9; margin-bottom: 2rem; line-height: 1.6; }
+.cta-button { display: inline-block; background: #a78bfa; color: white; padding: 14px 32px; border-radius: 50px; text-decoration: none; font-weight: 600; transition: all 0.3s; border: none; cursor: pointer; font-size: 16px; }
+.cta-button:hover { background: #9370db; transform: translateY(-2px); box-shadow: 0 10px 25px rgba(167, 139, 250, 0.3); }
+.container { max-width: 1100px; margin: 0 auto; padding: 4rem 2rem; }
+.projects-section h2 { font-size: 36px; font-weight: 700; margin-bottom: 0.5rem; background: linear-gradient(135deg, #1a0d3d 0%, #2d1b69 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.projects-section p { font-size: 16px; color: #6b7280; margin-bottom: 3rem; }
+.projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; }
+.project-card { background: white; border-radius: 12px; padding: 2rem; border: 1px solid #e5e7eb; transition: all 0.3s; position: relative; overflow: hidden; }
+.project-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, #a78bfa 0%, #60a5fa 100%); }
+.project-card:hover { border-color: #a78bfa; box-shadow: 0 20px 40px rgba(167, 139, 250, 0.15); transform: translateY(-8px); }
+.project-card h3 { font-size: 22px; font-weight: 600; margin-bottom: 1rem; color: #1f2937; }
+.project-card p { font-size: 15px; color: #4b5563; line-height: 1.7; margin-bottom: 1.5rem; }
+.project-link { display: inline-block; color: #a78bfa; text-decoration: none; font-weight: 600; font-size: 15px; transition: all 0.3s; }
+.project-link:hover { color: #9370db; }
+.badge { display: inline-block; background: #f3f4f6; color: #1f2937; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; margin-top: 1rem; margin-right: 0.5rem; }
+.wave { height: 100px; background: linear-gradient(135deg, #a78bfa 0%, #60a5fa 100%); clip-path: polygon(0 20%, 100% 0%, 100% 100%, 0% 100%); }
+footer { background: #1f2937; color: white; text-align: center; padding: 2rem; }
+footer a { color: #a78bfa; text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+</style>
 
-        <div class="projects">
-            <div class="project-card">
-                <h3>Fishing Furqan</h3>
-                <p>A custom advanced website built for halal deep sea fishing tours. The platform showcases tour experiences, manages bookings, and serves the Muslim fishing community.</p>
-                <a href="https://fishingfurqan.com" target="_blank">Visit website →</a>
-                <div>
-                    <span class="badge">Web Development</span>
-                    <span class="badge">Custom Design</span>
-                </div>
-            </div>
+<div class="hero">
+  <div class="hero-content">
+    <div class="logo">BLANKET SOLUTIONS</div>
+    <h1>Our Project Portfolio</h1>
+    <p>Cutting-edge AI automation, custom development, and enterprise solutions that drive real business impact.</p>
+    <a href="#projects" class="cta-button">View Projects</a>
+  </div>
+</div>
 
-            <div class="project-card">
-                <h3>Dental After-Hours AI Agent</h3>
-                <p>An intelligent AI agent developed for dental practices to handle after-hours operations. Manages emergency calls, schedules appointments, and responds to general patient inquiries with natural language processing.</p>
-                <span class="badge">AI Integration</span>
-                <span class="badge">Voice Automation</span>
-                <span class="badge">Healthcare</span>
-            </div>
-
-            <div class="project-card">
-                <h3>Real Estate Salesforce CRM</h3>
-                <p>A fully instantiated Salesforce organization for a real estate company designed to secure and follow up on leads. Integrated with AI to streamline processes and automate lead management and execution changes.</p>
-                <span class="badge">Salesforce</span>
-                <span class="badge">AI Integration</span>
-                <span class="badge">CRM Development</span>
-            </div>
+<div class="container">
+  <section class="projects-section" id="projects">
+    <h2>Featured Projects</h2>
+    <p>A showcase of our expertise in AI integration, custom web development, and enterprise automation.</p>
+    
+    <div class="projects-grid">
+      <div class="project-card">
+        <h3>Fishing Furqan</h3>
+        <p>A custom advanced website built for halal deep sea fishing tours. The platform showcases tour experiences, manages bookings, and serves the Muslim fishing community with a modern, user-friendly interface.</p>
+        <a href="https://fishingfurqan.com" target="_blank" class="project-link">Visit website →</a>
+        <div>
+          <span class="badge">Web Development</span>
+          <span class="badge">Custom Design</span>
+          <span class="badge">E-Commerce</span>
         </div>
+      </div>
 
-        <footer>
-            <p>Blanket Solutions LLC — Custom development, AI integration, and enterprise solutions</p>
-            <p style="margin-top: 1rem; font-size: 12px;">For inquiries or to discuss your project, please contact us.</p>
-        </footer>
+      <div class="project-card">
+        <h3>Dental After-Hours AI Agent</h3>
+        <p>An intelligent AI agent designed for dental practices to manage after-hours operations. Handles emergency calls, schedules appointments, and responds to patient inquiries with natural language processing.</p>
+        <span class="badge">AI Integration</span>
+        <span class="badge">Voice Automation</span>
+        <span class="badge">Healthcare</span>
+      </div>
+
+      <div class="project-card">
+        <h3>Real Estate Salesforce CRM</h3>
+        <p>A fully instantiated Salesforce organization for a real estate company designed to secure and manage leads. Integrated with AI to streamline processes and automate lead management and execution.</p>
+        <span class="badge">Salesforce</span>
+        <span class="badge">AI Integration</span>
+        <span class="badge">CRM Development</span>
+      </div>
     </div>
-</body>
-</html>
+  </section>
+</div>
+
+<div class="wave"></div>
+
+<footer>
+  <p><strong>Blanket Solutions LLC</strong></p>
+  <p style="margin-top: 0.5rem; font-size: 14px;">AI Automation & Enterprise Process Solutions | Tampa, FL</p>
+  <p style="margin-top: 1rem; font-size: 13px; opacity: 0.8;">For inquiries or to discuss your next project, <a href="mailto:contact@blanketsolutions.net">get in touch</a></p>
+</footer>

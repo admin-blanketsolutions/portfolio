@@ -1,0 +1,94 @@
+# Audit Management Platform: Phase 1 secure core
+
+A multi-tenant SaaS core for audit firms (ISA / ISQM, IFRS, ISO/IEC 27001, Jordan & MENA residency). The platform covers engagement workflow, AI-assisted trial-balance mapping, digital workpapers with 3-tier sign-off, sampling, and FS generation from TB + AJEs. This directory holds the **architecture review, the roadmap, and the executed Phase 1 foundation**: the PostgreSQL schema with the security model enforced in the database, and the TypeScript/NestJS tenant-context runtime.
+
+| Step | Deliverable | Where |
+|---|---|---|
+| 1 | Adversarial architecture & security review | [`docs/01-adversarial-security-review.md`](docs/01-adversarial-security-review.md) |
+| 2 | Master implementation blueprint (Phases 1–6, stack, API, testing) | [`docs/02-implementation-blueprint.md`](docs/02-implementation-blueprint.md) |
+| 3.1 | Architecture & security trade-off matrix | [`docs/03-architecture-security-tradeoff-matrix.md`](docs/03-architecture-security-tradeoff-matrix.md) |
+| 3.2 | Core relational schema (SQL DDL) + data model & indexing | [`db/migrations/`](db/migrations), [`docs/04-data-model-and-indexing.md`](docs/04-data-model-and-indexing.md) |
+| 3.3 | Backend skeleton for secure tenant context switching | [`backend/src/`](backend/src) |
+
+## Layout
+
+```
+audit-platform/
+├── db/
+│   ├── migrations/
+│   │   ├── V0001__roles_schemas_extensions.sql   least-privilege roles, schemas, extensions
+│   │   ├── V0002__signed_tenant_context.sql      HMAC-signed app.ctx verified in-DB
+│   │   ├── V0003__core_schema.sql                tenants, users, clients, engagements, COA, TB, mappings,
+│   │   │                                         workpapers/versions/sign-offs, evidence, AJEs
+│   │   ├── V0004__row_level_security.sql         FORCE RLS + ethical walls + client-portal walls
+│   │   ├── V0005__integrity_and_immutability.sql state machines, sign-off rules, ledger rules, archive lock
+│   │   ├── V0006__tamper_evident_audit_chain.sql per-tenant SHA-256 chain, verification, anchors
+│   │   ├── V0007__balance_rollups.sql            TB + AJE → FS roll-ups (ltree), integrity checks
+│   │   ├── V0008__provisioning_and_grants.sql    tenant provisioning, grants
+│   │   └── V0009__authn_resolution.sql           tenant directory, issuer-bound principal lookup, enter_context
+│   ├── tests/                                    00_fixtures + 8 SQL security/integrity suites
+│   └── scripts/test.sh                           fresh DB → migrate → fixtures → suites
+├── backend/
+│   ├── src/
+│   │   ├── tenancy/      context (ALS), signer, guard, interceptor, directory, OIDC verifier, module
+│   │   ├── database/     pool, TenantDb (tx-local signed context), SQL guard
+│   │   ├── jobs/         sealed job envelopes
+│   │   ├── cache/        tenant/user-scoped cache keys
+│   │   ├── storage/      tenant-bound S3 keys, per-tenant KMS, Object Lock
+│   │   ├── common/       domain errors, safe PG error mapping, exception filter
+│   │   └── modules/      engagements (example), health
+│   └── test/             unit (62) · integration (8) · HTTP e2e (8)
+└── docs/
+```
+
+## How the tenant boundary works
+
+```
+Host: alpha-audit.app.example.com
+  └─► platform.tenant_directory(slug) ─► registered OIDC issuer, home region (421 if wrong region)
+Authorization: Bearer <JWT>
+  └─► verify ONLY against that issuer's JWKS (pinned algs, audience)
+  └─► platform.resolve_principal(slug, iss, sub) ─► user id, kind, admin flag
+TenantContextInterceptor ─► AsyncLocalStorage.run(ctx, next.handle)
+TenantDb.transaction(work)
+  BEGIN
+  SELECT … FROM app.enter_context('v1.<key>.<tenant>.<user>.<flags>.<exp>.<hmac>')   -- tx-local, verified in-DB
+  … repository SQL (guarded; extended protocol) …   ◄── RLS: tenant_id = verified ctx
+  COMMIT                                                ethical walls, client walls, triggers
+```
+
+## Running the tests
+
+Requirements: PostgreSQL 16 (superuser for the throwaway test DB), Node 22.
+
+```bash
+# 1. SQL suites (creates, migrates, tests and drops a fresh database)
+ADMIN_URL=postgresql://postgres@localhost:5432/postgres ./db/scripts/test.sh
+
+# 2. Backend: keep the DB from step 1 and point the tests at it
+KEEP_DB=1 ADMIN_URL=postgresql://postgres@localhost:5432/postgres ./db/scripts/test.sh   # prints DATABASE_URL=…/audit_test_…
+cd backend && npm ci
+ADMIN_DATABASE_URL=postgresql://postgres@localhost:5432/<db> \
+DATABASE_URL=postgresql://audit_app_it:it-only@localhost:5432/<db> \
+npm test
+```
+
+CI runs both against a `postgres:16` service: `.github/workflows/audit-platform-ci.yml`.
+
+### What the suites prove
+
+| Suite | Highlights |
+|---|---|
+| `10_schema_lint` | Every table: ENABLE+FORCE RLS, tenant-first PK, tenant-scoped FKs/uniques; no MVs; definer hygiene; no PUBLIC execute; no floats; app role owns nothing, no TRUNCATE, no partition access |
+| `20_tenant_isolation` | Fail-closed without context; forged, escalated, extended, malformed, unknown-key and expired contexts rejected; cross-tenant writes blocked; FK oracles closed |
+| `30_ethical_walls` | Non-members see headers but never content; admins not exempt (self-staffing is chained); removed members lose access; client-portal isolation; storage-prefix CHECK; retention floor |
+| `40_workpaper_signoffs` | DB-assigned versions/hashes, server time, no impersonation, SoD, order, step-up, hash binding, stale-version refusal, append-only (even for superuser with triggers on) |
+| `50_tb_mapping_aje_rollup` | Control-total reconciliation, frozen lines, prompt-injected account name rejected by a human, AI cannot accept, DBA line tampering caught by digest, maker-checker, in-period posting, exact reversals, gapless numbering, roll-up totals |
+| `60_audit_chain` | Out-of-band DBA edit self-identifies; single-event edit, tail truncation and **full consistent rewrite** detected (the last via the anchor) |
+| `70_engagement_lifecycle` | ISA 320/220 gates, completion gates (report date, locked TB, partner-approved WPs, no open AJEs), partner-only archive, archive lock on every write path |
+| `80_authn_resolution` | Issuer confusion blocked, suspended users don't resolve, lookup doesn't open `app.users`, `enter_context` refuses double entry |
+| `backend/test` | HMAC compatibility TS↔SQL, 400-flow ALS isolation, 60 interleaved transactions on a pool of 3 without leakage, HTTP e2e with real ES256 JWTs from two independent IdPs, 40 concurrent cross-tenant requests, safe error mapping |
+
+## Security posture in one paragraph
+
+Tenant isolation, ethical walls, sign-off rules, ledger rules and immutability are enforced **by PostgreSQL**, so an API bug, a compromised service or a hand-written SQL session cannot bypass them. The tenant context is **signed**, so SQL injection cannot pivot tenants. It is **transaction-local**, so pooled connections cannot leak it. It is **carried by AsyncLocalStorage**, so concurrent requests cannot see each other's context. Everything the law treats as a record is append-only and **hash-chained**; external **anchors** make even a superuser's rewrite detectable. The remaining trust assumptions (RCE on the API host, collusion, DB superuser between anchors) are listed with their mitigations in `docs/03`.

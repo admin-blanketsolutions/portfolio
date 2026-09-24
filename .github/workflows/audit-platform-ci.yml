@@ -31,8 +31,20 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: audit-platform/backend/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: audit-platform/parser/requirements-dev.txt
       - name: Install PostgreSQL client
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: TB parser (sandboxed) — unit, property and malicious-file tests
+        working-directory: audit-platform/parser
+        # The backend's integration tests spawn this venv's interpreter (TB_PARSER_DIR default).
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -r requirements-dev.txt
+          .venv/bin/python -m pytest
       - name: SQL migrations + security test suites
         id: sql
         env:

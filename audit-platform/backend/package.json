@@ -2,7 +2,7 @@
   "name": "@audit-platform/api",
   "version": "0.1.0",
   "private": true,
-  "description": "Audit Management Platform \u2014 core API (Phase 1: tenancy, identity, secure data access)",
+  "description": "Audit Management Platform — core API (Phase 1: tenancy, identity, secure data access)",
   "license": "UNLICENSED",
   "engines": {
     "node": ">=22"
@@ -15,6 +15,7 @@
     "test:integration": "vitest run test/integration"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
     "@nestjs/common": "^12.1.0",
     "@nestjs/core": "^12.1.0",
     "@nestjs/platform-express": "^12.1.0",

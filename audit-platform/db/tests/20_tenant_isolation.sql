@@ -35,7 +35,7 @@ BEGIN
   SELECT count(*) INTO n FROM platform.tenants;
   ASSERT n = 1, 'T2 tenant row count should be 1, got ' || n;
   SELECT count(*) INTO n FROM app.users;
-  ASSERT n = 8, 'T2 expected 8 alpha users, got ' || n;
+  ASSERT n = 9, 'T2 expected 9 alpha users (8 fixtures + the ingestion principal), got ' || n;
 END
 $$;
 

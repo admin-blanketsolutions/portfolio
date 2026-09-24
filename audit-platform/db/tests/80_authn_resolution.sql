@@ -18,7 +18,14 @@ BEGIN
   SELECT * INTO r FROM platform.resolve_principal('alpha-audit', 'https://login.alpha.test/', 'idp|alpha-partner');
   ASSERT r.user_id = test.uid('alpha', 'partner') AND r.flags = '', 'A1 partner resolves with no flags';
   ASSERT (SELECT flags FROM platform.resolve_principal('alpha-audit', 'https://login.alpha.test/', 'idp|alpha-admin')) = 'A', 'A1 admin flag';
-  ASSERT (SELECT flags FROM platform.resolve_principal('alpha-audit', 'https://login.alpha.test/', 'idp|alpha-svc')) = 'S', 'A1 service flag';
+  -- A1b Service principals are never reachable through an IdP token (V0010): whoever runs the
+  -- firm's IdP could otherwise mint their subject and bypass the ethical walls.
+  SELECT count(*) INTO n FROM platform.resolve_principal('alpha-audit', 'https://login.alpha.test/', 'idp|alpha-svc');
+  ASSERT n = 0, 'A1b service principal must not resolve via OIDC';
+  SELECT count(*) INTO n FROM platform.resolve_principal('alpha-audit', 'https://login.alpha.test/', 'system:tb-ingestion');
+  ASSERT n = 0, 'A1b ingestion principal must not resolve via OIDC';
+  ASSERT platform.service_principal_id(test.tenant('alpha'), 'system:tb-ingestion') IS NOT NULL, 'A1b worker lookup';
+  ASSERT platform.service_principal_id(test.tenant('alpha'), 'idp|alpha-partner') IS NULL, 'A1b lookup is service-only';
   ASSERT (SELECT flags FROM platform.resolve_principal('alpha-audit', 'https://login.alpha.test/', 'idp|alpha-client')) = 'C', 'A1 client flag';
 
   -- A2 Issuer confusion: beta's IdP cannot log anyone into alpha, and vice versa.

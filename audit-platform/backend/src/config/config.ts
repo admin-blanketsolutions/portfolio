@@ -22,6 +22,22 @@ const EnvSchema = z.object({
   OIDC_AUDIENCE: z.string().min(1),
   TENANT_BASE_DOMAIN: z.string().regex(/^[a-z0-9.-]+$/),
   DEPLOYMENT_REGION: z.string().min(1),
+
+  // --- TB ingestion (Phase 3) ---
+  TB_UPLOAD_MAX_BYTES: z.coerce.number().int().min(1024).max(100 * 1024 * 1024).default(25 * 1024 * 1024),
+  /** Directory holding the sandboxed parser package (audit-platform/parser). */
+  TB_PARSER_DIR: z.string().min(1).default('../parser'),
+  /** Interpreter with the parser's requirements (defaults to the parser's own virtualenv). */
+  TB_PARSER_PYTHON: z.string().min(1).optional(),
+  TB_PARSER_TIMEOUT_MS: z.coerce.number().int().min(1000).max(600_000).default(90_000),
+  /** Only 'memory' exists today (dev/test); the S3 adapter lands with the infrastructure code. */
+  OBJECT_STORE_DRIVER: z.enum(['memory']).default('memory'),
+  TB_SOURCE_BUCKET: z.string().regex(/^[a-z0-9.-]{3,63}$/).default('audit-tb-sources'),
+  /** LLM stage of the mapping cascade. Also requires platform.tenants.llm_mapping_allowed per tenant. */
+  MAPPING_LLM_ENABLED: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
+  MAPPING_LLM_MODEL: z.string().min(1).default('claude-opus-5'),
+  MAPPING_LLM_EFFORT: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).default('medium'),
+  MAPPING_LLM_BATCH_SIZE: z.coerce.number().int().min(1).max(200).default(50),
 });
 
 export type AppConfig = z.infer<typeof EnvSchema>;

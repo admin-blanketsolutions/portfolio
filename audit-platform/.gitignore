@@ -2,3 +2,7 @@ node_modules/
 dist/
 *.log
 .env
+.venv/
+__pycache__/
+.pytest_cache/
+.hypothesis/

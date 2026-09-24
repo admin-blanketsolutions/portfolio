@@ -1,6 +1,6 @@
 # 04 — Data Model & Indexing Strategy
 
-DDL: `db/migrations/V0003__core_schema.sql` (tables), `V0004` (RLS), `V0005` (integrity), `V0006` (audit chain), `V0007` (roll-ups), `V0009` (authn).
+DDL: `db/migrations/V0003__core_schema.sql` (tables), `V0004` (RLS), `V0005` (integrity), `V0006` (audit chain), `V0007` (roll-ups), `V0009` (authn), `V0010` (TB ingestion: uploads, mapping rules, service principals).
 
 ## Entity-relationship overview
 
@@ -12,10 +12,13 @@ erDiagram
   CLIENTS ||--o{ ENGAGEMENTS : "(tenant_id, client_id)"
   ENGAGEMENTS ||--o{ ENGAGEMENT_MEMBERS : "ethical wall"
   USERS ||--o{ ENGAGEMENT_MEMBERS : ""
+  ENGAGEMENTS ||--o{ TB_IMPORTS : "uploaded files (WORM)"
+  TB_IMPORTS |o--o| TRIAL_BALANCES : "built from its own file"
   ENGAGEMENTS ||--o{ TRIAL_BALANCES : "versions, one locked"
   TRIAL_BALANCES ||--o{ TB_LINES : "hash-partitioned by tenant"
   TB_LINES ||--o{ ACCOUNT_MAPPINGS : "AI suggests / human decides"
-  COA_ACCOUNTS ||--o{ ACCOUNT_MAPPINGS : ""
+  COA_ACCOUNTS ||--o{ ACCOUNT_MAPPINGS : "postable only"
+  COA_ACCOUNTS ||--o{ MAPPING_RULES : "firm rules (postable only)"
   ENGAGEMENTS ||--o{ WORKPAPERS : ""
   WORKPAPERS ||--o{ WORKPAPER_VERSIONS : "append-only, sha256"
   WORKPAPER_VERSIONS ||--o{ WORKPAPER_SIGNOFFS : "preparer > reviewer > partner"
@@ -39,7 +42,9 @@ Every relationship between tenant-owned tables is a **composite** foreign key st
 | `users` | Unique `(tenant_id, idp_subject)`, `(tenant_id, lower(email))`; staff ⇔ rank; an active human must have MFA |
 | `engagements` | Materiality ordering (CTT ≤ PM ≤ OM); `report_date > period_end`; `assembly_deadline = report_date + 60` (generated, ISA 230.A21); archived ⇔ `archived_at` |
 | `trial_balances` | One `locked` per `(engagement, kind)` (partial unique index); source object key bound to the tenant prefix; control totals; `lines_sha256` |
-| `account_mappings` | One `accepted` per line (partial unique); LLM/embedding suggestions require `model_ref`; decided ⇔ `decided_by/at` |
+| `account_mappings` | One `accepted` per line (partial unique); LLM/embedding suggestions require `model_ref`; decided ⇔ `decided_by/at`; target account must be postable; machine sources only from a service principal, `manual` only from staff (V0010) |
+| `tb_imports` | `source_object_key` under `tenants/<tenant>/engagements/<engagement>/tb/`; imported ⇔ `trial_balance_id`; failed ⇔ `failure_code`; terminal ⇔ `completed_at`; bounded `report` / `mapping_summary` JSON; status changes by the ingestion service principal only |
+| `mapping_rules` | `code_range` ⇔ `pattern_to`; no regular expressions (prefix / range / normalised substring, so no ReDoS); retired, never deleted |
 | `workpaper_signoffs` | Unique `(version_id, level)`; content hash must match the version |
 | `evidence_files` | `object_key` must live under `tenants/<tenant>/engagements/<engagement>/`; size ≤ 5 GiB; scan verdict ⇔ `scanned_at` |
 | `adjusting_entries` | Unique `(engagement, entry_no)`; PAJE never posted; approver ≠ preparer; single non-rejected reversal per entry |

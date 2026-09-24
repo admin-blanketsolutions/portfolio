@@ -31,6 +31,15 @@ export function testConfig(over: Partial<AppConfig> = {}): AppConfig {
     OIDC_AUDIENCE: 'audit-platform-api',
     TENANT_BASE_DOMAIN: 'app.test',
     DEPLOYMENT_REGION: 'me-central-1',
+    TB_UPLOAD_MAX_BYTES: 5 * 1024 * 1024,
+    TB_PARSER_DIR: '../parser',
+    TB_PARSER_TIMEOUT_MS: 60_000,
+    OBJECT_STORE_DRIVER: 'memory',
+    TB_SOURCE_BUCKET: 'audit-tb-sources-test',
+    MAPPING_LLM_ENABLED: false,
+    MAPPING_LLM_MODEL: 'claude-opus-5',
+    MAPPING_LLM_EFFORT: 'medium',
+    MAPPING_LLM_BATCH_SIZE: 50,
     ...over,
   };
 }

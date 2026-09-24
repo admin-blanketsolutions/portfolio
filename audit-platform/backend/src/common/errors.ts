@@ -5,6 +5,8 @@ export type DomainErrorCode =
   | 'misdirected'
   | 'conflict'
   | 'invalid'
+  | 'payload_too_large'
+  | 'unsupported_media'
   | 'unavailable'
   | 'internal';
 

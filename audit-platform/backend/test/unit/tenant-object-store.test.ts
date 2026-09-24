@@ -8,6 +8,7 @@ const ENG = '33333333-3333-4333-8333-333333333333';
 class FakeS3 implements ObjectStorePort {
   puts: PutObjectRequest[] = [];
   async putObject(req: PutObjectRequest) { this.puts.push(req); return { versionId: 'v1' }; }
+  async getObject(_b: string, key: string) { return new Uint8Array(Buffer.from(key)); }
   async presignGetObject(_b: string, key: string, ttl: number) { return `https://s3/${key}?ttl=${ttl}`; }
 }
 

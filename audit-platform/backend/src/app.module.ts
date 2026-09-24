@@ -2,6 +2,7 @@ import { Global, Module, type DynamicModule } from '@nestjs/common';
 import type { AppConfig } from './config/config.js';
 import { EngagementsModule } from './modules/engagements/engagements.module.js';
 import { HealthModule } from './modules/health/health.controller.js';
+import { TbIngestionModule, type TbIngestionOptions } from './modules/tb-ingestion/tb-ingestion.module.js';
 import { TenancyModule, type TenancyOptions } from './tenancy/tenancy.module.js';
 import { APP_CONFIG } from './tenancy/tokens.js';
 
@@ -27,16 +28,17 @@ class ConfigModule {
  *   ├── HealthModule            @Public liveness/readiness
  *   ├── EngagementsModule       example tenant-bound module (list, stage machine, FS roll-up)
  *   ├── (P2) WorkpapersModule   versions, sign-offs (WebAuthn step-up), evidence
- *   ├── (P3) TbIngestionModule  upload -> sandboxed parser job -> mapping suggestions
+ *   ├── **TbIngestionModule**   upload -> sandboxed parser job -> mapping cascade -> review -> lock (P3 slice 1)
  *   ├── (P4) LedgerModule       AJEs, FS generation
  *   └── (P5) SamplingModule, PortalModule, TimesheetsModule
  */
 @Module({})
 export class AppModule {
-  static forRoot(config: AppConfig, tenancy: TenancyOptions = {}): DynamicModule {
+  static forRoot(config: AppConfig, tenancy: TenancyOptions = {}, ingestion: TbIngestionOptions = {}): DynamicModule {
     return {
       module: AppModule,
-      imports: [ConfigModule.forRoot(config), TenancyModule.forRoot(tenancy), HealthModule, EngagementsModule],
+      imports: [ConfigModule.forRoot(config), TenancyModule.forRoot(tenancy), HealthModule, EngagementsModule,
+                TbIngestionModule.forRoot(ingestion)],
     };
   }
 }

@@ -20,6 +20,7 @@ export interface PutObjectRequest {
 
 export interface ObjectStorePort {
   putObject(req: PutObjectRequest): Promise<{ versionId?: string }>;
+  getObject(bucket: string, key: string): Promise<Uint8Array>;
   presignGetObject(bucket: string, key: string, expiresInSeconds: number): Promise<string>;
 }
 
@@ -76,6 +77,47 @@ export class TenantObjectStore {
       Tagging: `tenant=${tenantId}&class=audit-evidence`,
     });
     return versionId === undefined ? { key } : { key, versionId };
+  }
+
+  /** Key for an uploaded trial-balance source file (checked again by app.tb_imports' CHECK constraint). */
+  tbSourceKey(engagementId: string, importId: string): string {
+    const { tenantId } = requireTenantContext();
+    if (!UUID.test(engagementId) || !UUID.test(importId)) throw new Error('engagementId and importId must be UUIDs');
+    return `tenants/${tenantId}/engagements/${engagementId}/tb/${importId}`;
+  }
+
+  /** Store a client TB file under Object Lock: it is audit evidence of what was imported. */
+  async putTbSource(input: {
+    engagementId: string;
+    importId: string;
+    bytes: Uint8Array;
+    sha256Base64: string;
+    contentType: string;
+    retainUntil: Date;
+  }): Promise<{ key: string; versionId?: string }> {
+    const { tenantId } = requireTenantContext();
+    const key = this.tbSourceKey(input.engagementId, input.importId);
+    const { versionId } = await this.port.putObject({
+      Bucket: this.bucket,
+      Key: key,
+      Body: input.bytes,
+      ContentType: input.contentType,
+      ChecksumSHA256: input.sha256Base64,
+      ServerSideEncryption: 'aws:kms',
+      SSEKMSKeyId: this.kmsKeyFor(tenantId),
+      BucketKeyEnabled: true,
+      ObjectLockMode: 'COMPLIANCE',
+      ObjectLockRetainUntilDate: input.retainUntil,
+      Tagging: `tenant=${tenantId}&class=tb-source`,
+    });
+    return versionId === undefined ? { key } : { key, versionId };
+  }
+
+  /** Read back an object of the ACTIVE tenant only. */
+  async getOwn(key: string): Promise<Uint8Array> {
+    const { tenantId } = requireTenantContext();
+    if (!key.startsWith(`tenants/${tenantId}/`) || key.split('/').includes('..')) throw new ForeignObjectKeyError();
+    return this.port.getObject(this.bucket, key);
   }
 
   async presignDownload(key: string, expiresInSeconds = 120): Promise<string> {

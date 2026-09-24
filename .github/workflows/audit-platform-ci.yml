@@ -1,0 +1,52 @@
+name: audit-platform
+
+on:
+  push:
+    paths: ['audit-platform/**', '.github/workflows/audit-platform-ci.yml']
+  pull_request:
+    paths: ['audit-platform/**', '.github/workflows/audit-platform-ci.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    defaults:
+      run:
+        working-directory: audit-platform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: audit-platform/backend/package-lock.json
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: SQL migrations + security test suites
+        id: sql
+        env:
+          ADMIN_URL: postgresql://postgres@localhost:5432/postgres
+          KEEP_DB: '1'
+        run: |
+          ./db/scripts/test.sh | tee sql.log
+          echo "db=$(grep '^DATABASE_URL=' sql.log | cut -d= -f2 | xargs basename)" >> "$GITHUB_OUTPUT"
+      - name: Backend typecheck
+        working-directory: audit-platform/backend
+        run: npm ci && npm run typecheck
+      - name: Backend unit + integration + HTTP e2e tests
+        working-directory: audit-platform/backend
+        env:
+          ADMIN_DATABASE_URL: postgresql://postgres@localhost:5432/${{ steps.sql.outputs.db }}
+          DATABASE_URL: postgresql://audit_app_it:it-only@localhost:5432/${{ steps.sql.outputs.db }}
+        run: npm test

@@ -79,6 +79,8 @@ Implementing and testing the Phase 1 core surfaced defects that a design-only re
 3. **Unprivileged profile edits = privilege escalation.** A "users may update their own row" policy would let a user flip `is_firm_admin`, which the backend reads when minting context. Only admins may update users, and no one may change their own admin flag.
 4. **`TRUNCATE` bypasses row triggers.** "Append-only" enforced by `BEFORE UPDATE/DELETE` row triggers alone can be emptied with `TRUNCATE`. Statement-level `BEFORE TRUNCATE` guards are added and privileges are revoked.
 5. **SQL guard false positive.** A naive `^\s*SET` check blocks every multi-line `UPDATE … \n SET …`. The guard inspects only the leading keyword and relies on the **extended protocol** (`queryMode: 'extended'`) to make multi-statement smuggling impossible.
+6. **Service principals reachable through the firm's IdP (fixed in V0010).** `resolve_principal` matched any user by `(issuer, sub)`, including `service` users. Whoever administers a firm's IdP could mint a token with a service principal's subject and obtain a context that bypasses the ethical walls. Service principals are now excluded from OIDC resolution; workers obtain their identity through `platform.service_principal_id`. Suite `80` A1b covers it, and a mutation that removes the exclusion fails the suite.
+7. **Spreadsheet rows silently dropped (fixed in the parser).** openpyxl's read-only mode trusts the workbook's `<dimension>` tag and stops there. A workbook that under-declares its size would have its trailing TB lines ignored, and the control totals would still reconcile because the parser computes them. The parser now resets dimensions and reads every row (`test_rows_beyond_a_lying_dimension_tag_are_not_dropped`, mutation-checked).
 
 ---
 
@@ -140,12 +142,12 @@ ISA 230 frames the requirement: assemble the final file promptly (normally **wit
 
 ### 3.2 Controls
 
-**Ingestion sandbox (Phase 3, fixed by the Phase 1 schema):**
+**Ingestion sandbox (Phase 3 slice 1 implemented in `parser/`; items 1–2 need the container runtime):**
 1. Upload to a *quarantine* bucket through a presigned PUT with a SHA-256 checksum; malware scan (GuardDuty Malware Protection for S3 or ClamAV) before promotion.
 2. Parse in an **isolated, network-less** worker (Fargate or Lambda with no NAT/egress, read-only root filesystem, non-root user, seccomp, CPU/memory/time limits, one file per invocation).
-3. Accept `.xlsx`/`.csv` only. Reject `.xlsm`/`.xlsb`/`.xls` and any VBA/XLM parts (detected with `oletools`), or convert them in a second disposable sandbox if the firm opts in.
-4. Use `openpyxl` in `read_only=True, data_only=True` mode (cached values; **formulas are never evaluated**) with `defusedxml`; set limits on uncompressed size, compression ratio, rows, columns and string length.
-5. Normalize: NFKC; strip bidi controls; convert Arabic-Indic digits and separators; parse parenthesized negatives; fold Arabic letter variants for **matching only**. The verbatim name is kept for display (`client_account_name` vs `client_account_name_norm`).
+3. Accept `.xlsx`/`.csv` only. Reject `.xlsm`/`.xlsb`/`.xls` and any VBA/XLM parts, or convert them in a second disposable sandbox if the firm opts in. *Implemented: extension + magic-byte checks at upload; OOXML pre-flight rejects VBA, XLM macro sheets, external/DDE links, OLE embeddings, ActiveX, data connections, DTDs, encrypted packages, zip bombs and unsafe part names.*
+4. Use `openpyxl` in `read_only=True, data_only=True` mode (cached values; **formulas are never evaluated**) with `defusedxml`; set limits on uncompressed size, compression ratio, rows, columns and string length. *Implemented, plus: a formula cell with no saved value is refused, and the `<dimension>` tag is not trusted (finding 7).*
+5. Normalize: NFKC; strip bidi controls; convert Arabic-Indic digits and separators; parse parenthesized negatives; fold Arabic letter variants for **matching only**. The verbatim name is kept for display (`client_account_name` vs `client_account_name_norm`). *Implemented in Python and ported to TypeScript; both are tested against the same golden vectors (`parser/tests/golden/normalization.json`).*
 6. Emit a typed result with **control totals** (line count, ΣDr, ΣCr). The DB re-computes them when the import closes and refuses on mismatch; lines are then frozen and digested. *Implemented: I1, I2, M5.*
 7. On any export back to Excel/CSV, prefix cells starting with `= + - @ \t \r` with `'` (OWASP CSV-injection guidance).
 
@@ -155,7 +157,7 @@ ISA 230 frames the requirement: assemble the final file promptly (normally **wit
 |---|---|---|
 | 0 | Carry-forward: same client, same account code, accepted last year | `carried_forward` |
 | 1 | Firm rules (code ranges, patterns) | `rule` |
-| 2 | Exact normalized-name match against the **same tenant's** accepted history | `exact` |
+| 2 | Exact normalized-name match against the chart of accounts or the **same client's** accepted history (other clients' names never influence, or leak into, an engagement) | `exact` |
 | 3 | Embedding kNN over a per-tenant namespace plus a public IFRS taxonomy | `embedding` |
 | 4 | LLM for the residual only | `llm` |
 | 5 | **Human decision (required)** | `manual` / accept / reject |
@@ -164,10 +166,10 @@ LLM guardrails (OWASP LLM Top 10 2025: LLM01 prompt injection, LLM02 sensitive-i
 
 * **No agency.** The model has no tools with side effects. Its only output is a JSON object validated against a schema whose `coa_code` is an **enum of the firm's postable accounts**. Anything else is discarded.
 * Account names are passed as delimited *data* with an explicit instruction hierarchy. Amounts are not sent; only the sign and class hints are (data minimization). Client names are pseudonymized.
-* **The database refuses AI authority.** Suggestions from `llm`/`embedding` must carry `model_ref` (model id + prompt-template hash + index version). Only a human staff member may accept or reject; a service principal cannot, and a suggestion cannot be edited into a different answer. *Implemented + tested (M1–M3, including an injected account name).*
-* Plausibility checks shown to the reviewer: sign vs normal balance, class drift vs prior year, "many lines to one account" concentration, and an injection-heuristic flag (imperatives, "ignore", URLs, abnormal length).
+* **The database refuses AI authority.** Suggestions from `llm`/`embedding` must carry `model_ref` (model id + prompt-template hash + index version). Only a human staff member may accept or reject; a service principal cannot, and a suggestion cannot be edited into a different answer. Machine sources can only be written by a service principal and `manual` only by a human, so provenance cannot be dressed up either way (V0010). *Implemented + tested (M1–M3, M6–M8, HTTP e2e).*
+* Plausibility checks shown to the reviewer: sign vs normal balance, class drift vs prior year, "many lines to one account" concentration, and an injection-heuristic flag (imperatives, "ignore", URLs, abnormal length). *Implemented except class drift; flagged suggestions are excluded from bulk accept and need an explicit acknowledgement to accept.*
 * Evaluation: per release, precision@1 on a labelled Arabic/English corpus plus a prompt-injection red-team corpus as a CI gate; mapping distribution drift is monitored.
-* Residency: the model endpoint must be in a region allowed by the tenant's residency policy (§4). Otherwise it is a cross-border transfer and needs a legal basis. Sovereign-cell tenants use a self-hosted open-weight model.
+* Residency: the model endpoint must be in a region allowed by the tenant's residency policy (§4). Otherwise it is a cross-border transfer and needs a legal basis. Sovereign-cell tenants use a self-hosted open-weight model. *Implemented as a double gate: the deployment must enable the stage and the control plane must record `platform.tenants.llm_mapping_allowed` for the tenant (default off). Only code, name and balance side are sent; no amounts, ids or client names.*
 
 ---
 

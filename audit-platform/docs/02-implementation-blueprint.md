@@ -59,7 +59,8 @@
 | Team | `PUT /engagements/{id}/members/{userId}`, `POST /engagements/{id}/members/{userId}/independence` |
 | Workpapers | `POST /engagements/{id}/workpapers`, `POST /workpapers/{id}/versions`, `POST /workpapers/{id}/signoffs` (WebAuthn assertion over the content hash), `GET /workpapers/{id}/history` |
 | Evidence | `POST /engagements/{id}/evidence:presign` → PUT to S3 → `POST /engagements/{id}/evidence` |
-| Trial balance | `POST /engagements/{id}/trial-balances:upload` → **202** + job, `GET /trial-balances/{id}`, `GET /trial-balances/{id}/lines`, `GET /trial-balances/{id}/mapping-suggestions`, `POST /mappings/{id}:accept|reject`, `POST /trial-balances/{id}:lock` |
+| Trial balance *(implemented, Phase 3 slice 1)* | `POST /engagements/{id}/tb-imports?filename=…` (raw xlsx/csv body) → **202**, `GET /tb-imports/{id}`, `GET /engagements/{id}/tb-imports`, `GET /trial-balances/{id}`, `GET /trial-balances/{id}/lines?afterLine=&limit=` (suggestion + provenance + reviewer flags per line), `POST /mappings/{id}/accept` (flagged ⇒ `acknowledgeFlags`), `POST /mappings/{id}/reject`, `POST /trial-balances/{id}/bulk-accept` (unflagged only), `POST /trial-balances/{id}/lines/{lineId}/mapping` (manual), `POST /trial-balances/{id}/lock`, `GET /coa`, `GET|POST /mapping-rules`, `POST /mapping-rules/{id}/deactivate`; lines filter `status=open|pending|accepted|unmapped|all` |
+| Session *(implemented)* | `GET /auth/config` (public; the tenant's issuer, web client id, audience and scope, resolved from the `Host`), `GET /me` (display names EN/AR, rank, admin flag) |
 | Ledger | `POST /engagements/{id}/adjusting-entries`, `POST /adjusting-entries/{id}:propose|approve|post|void`, `GET /engagements/{id}/uncorrected-misstatements` (ISA 450) |
 | FS | `POST /engagements/{id}/financial-statements:render` → 202, `GET /financial-statements/{id}` (hash-stamped PDF/iXBRL) |
 | Sampling | `POST /engagements/{id}/samples` (method, population, parameters, **seed**), `POST /samples/{id}:evaluate` |
@@ -98,7 +99,16 @@ Indicative effort for a team of 6–8 engineers (2 backend, 1 data/AI, 2 fronten
 * ISA 230.16 post-assembly addendum workflow; EQR (ISQM 2) sign-off level for PIE clients.
 * Tests: Playwright E2E per role; WebAuthn virtual authenticator; anchor-divergence alarm test.
 
-### Phase 3 — TB ingestion & AI mapping (weeks 16–28)
+### Phase 3 — TB ingestion & AI mapping (weeks 16–28) · **slices 1–2 delivered in this repository**
+
+| Workstream | Deliverables | Status |
+|---|---|---|
+| Parser | `parser/tb_parser`: .xlsx/.csv only; OOXML pre-flight (macros, XLM, DDE/external links, OLE, ActiveX, DTD/XXE, zip bombs, zip-slip, encryption); openpyxl read-only with cached values (formulas never evaluated; formula without a saved value refused); dimension tag not trusted; EN/AR header detection incl. two-row headers; four layouts; exact decimals (Arabic digits/separators, `(1,234)`, Dr/Cr suffixes); bidi/zero-width stripping; control totals; CLI with rlimits | ✅ 121 pytest (property + malicious corpus) |
+| Data | `V0010`: `tb_imports` (upload record, service-only status machine bound to its TB), `mapping_rules`, per-tenant ingestion service principal (never resolvable via OIDC), machine-vs-human provenance on mappings, postable-only targets, tenant LLM opt-in | ✅ suite `90_tb_ingestion` |
+| Cascade | carry-forward (previous TB version, prior-year locked TB — same client only) → firm rules → exact name (COA or client history) → LLM (Claude, schema-constrained to the firm's postable codes) → human decision | ✅ embedding stage ☐ |
+| Review API | status polling, lines with provenance and flags, accept/reject/manual, bulk accept of unflagged, lock | ✅ HTTP e2e |
+| Review UI | `web/`: Next.js 16, OIDC PKCE (tokens in memory only), per-tenant login discovery (`V0011`, `/auth/config`), upload with status polling, lines with provenance/flags, bulk accept of unflagged only, explicit acknowledgement for flagged, manual mapping with a recorded reason, lock; EN/AR with RTL; exact string-based amounts; per-request nonce CSP with `strict-dynamic` | ✅ vitest + Playwright |
+| Still to build | container sandbox runner (network-less Fargate/Lambda) and S3 + Object Lock adapter; embedding kNN stage; evaluation harness and red-team CI gate against a real model; multi-currency / IAS 21; keyboard-first review at 50k lines (virtualised table); accessibility audit (WCAG 2.2 AA) | ☐ |
 
 * Sandboxed parser (Python) with the hardening in `01 §3.2`; Arabic normalization library with golden tests.
 * Mapping cascade (carry-forward → rules → exact → embedding → LLM) with `model_ref` provenance and a human-decision UI (bulk accept with per-row flags).

@@ -9,6 +9,8 @@ const STATUS: Record<DomainErrorCode, number> = {
   misdirected: 421,
   conflict: 409,
   invalid: 422,
+  payload_too_large: 413,
+  unsupported_media: 415,
   unavailable: 503,
   internal: 500,
 };

@@ -2,3 +2,12 @@ node_modules/
 dist/
 *.log
 .env
+.venv/
+__pycache__/
+.pytest_cache/
+.hypothesis/
+.next/
+test-results/
+playwright-report/
+*.tsbuildinfo
+next-env.d.ts

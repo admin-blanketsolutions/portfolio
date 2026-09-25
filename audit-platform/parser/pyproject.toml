@@ -1,0 +1,13 @@
+[project]
+name = "tb-parser"
+version = "0.1.0"
+description = "Sandboxed trial-balance parser for the audit platform (xlsx/csv -> typed lines + control totals)"
+requires-python = ">=3.11"
+dependencies = ["openpyxl==3.1.5", "defusedxml==0.7.1"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "hypothesis>=6.100"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

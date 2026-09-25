@@ -41,7 +41,9 @@
     "*.config.ts",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "proxy.ts"
+    "proxy.ts",
+    ".next-idp/types/**/*.ts",
+    ".next-idp/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

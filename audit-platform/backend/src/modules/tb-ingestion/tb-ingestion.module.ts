@@ -7,11 +7,12 @@ import { decodeSecret, type AppConfig } from '../../config/config.js';
 import type { TenantDb } from '../../database/tenant-db.js';
 import { JobEnvelopeCodec } from '../../jobs/job-envelope.js';
 import { InProcessJobQueue } from '../../jobs/job-queue.js';
-import { InMemoryObjectStore } from '../../storage/in-memory-object-store.js';
+import { createObjectStorePort } from '../../storage/object-store-factory.js';
 import { TenantObjectStore, type ObjectStorePort } from '../../storage/tenant-object-store.js';
 import { APP_CONFIG, PG_POOL, TENANT_DB } from '../../tenancy/tokens.js';
 import { ClaudeAccountClassifier, type AccountClassifierPort } from './llm-classifier.js';
 import type { TbParserPort } from './parser-port.js';
+import { ContainerTbParser } from './container-parser.js';
 import { SubprocessTbParser } from './subprocess-parser.js';
 import { TbIngestionController } from './tb-ingestion.controller.js';
 import { PgServicePrincipals, TB_IMPORT_JOB, TbImportWorker } from './tb-import.worker.js';
@@ -29,10 +30,23 @@ export interface TbIngestionOptions {
 }
 
 function defaultParser(c: AppConfig): TbParserPort {
+  if (c.TB_PARSER_DRIVER === 'container') {
+    // Only what the CLI needs to reach its daemon; the container itself gets no environment.
+    const cliEnv = Object.fromEntries(['DOCKER_HOST', 'HOME', 'XDG_RUNTIME_DIR', 'CONTAINER_HOST']
+      .flatMap((k) => (process.env[k] ? [[k, process.env[k]!]] : [])));
+    return new ContainerTbParser({
+      image: c.TB_PARSER_IMAGE!,
+      cli: c.TB_PARSER_CONTAINER_CLI,
+      ...(c.TB_PARSER_RUNTIME ? { runtime: c.TB_PARSER_RUNTIME } : {}),
+      timeoutMs: c.TB_PARSER_TIMEOUT_MS,
+      memoryMb: c.TB_PARSER_MEMORY_MB,
+      cliEnv,
+    });
+  }
   const dir = path.resolve(c.TB_PARSER_DIR);
   const venv = path.join(dir, '.venv', 'bin', 'python');
   const python = c.TB_PARSER_PYTHON ?? (existsSync(venv) ? venv : 'python3');
-  return new SubprocessTbParser({ python, cwd: dir, timeoutMs: c.TB_PARSER_TIMEOUT_MS });
+  return new SubprocessTbParser({ python, cwd: dir, timeoutMs: c.TB_PARSER_TIMEOUT_MS, memoryMb: c.TB_PARSER_MEMORY_MB });
 }
 
 function defaultClassifier(c: AppConfig): AccountClassifierPort | null {
@@ -65,10 +79,10 @@ export class TbIngestionModule implements OnModuleInit {
         {
           provide: TB_OBJECT_STORE,
           inject: [APP_CONFIG],
-          useFactory: (c: AppConfig) => new TenantObjectStore(
-            options.objectStorePort ?? new InMemoryObjectStore(), c.TB_SOURCE_BUCKET,
-            // Per-tenant CMK alias; the S3/KMS adapter resolves it (sovereign tenants: XKS-backed key).
-            (tenantId) => `alias/audit-tenant-${tenantId}`),
+          useFactory: async (c: AppConfig) => new TenantObjectStore(
+            options.objectStorePort ?? await createObjectStorePort(c, c.TB_SOURCE_BUCKET), c.TB_SOURCE_BUCKET,
+            // Per-tenant CMK (sovereign tenants: an XKS-backed key behind the same alias).
+            (tenantId) => c.TENANT_KMS_KEY_TEMPLATE.replace('{tenantId}', tenantId)),
         },
         { provide: JOB_CODEC, inject: [APP_CONFIG], useFactory: (c: AppConfig) => new JobEnvelopeCodec(decodeSecret(c.JOB_ENVELOPE_KEY)) },
         {

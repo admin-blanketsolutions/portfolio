@@ -33,6 +33,17 @@ describe('ApiClient', () => {
     expect(onUnauth).toHaveBeenCalledOnce();
   });
 
+  it('reports when the API accepted the token, and only then', async () => {
+    const ok = vi.fn();
+    globalThis.fetch = vi.fn(async () => new Response('{"accounts":[]}', { status: 200 })) as typeof fetch;
+    await new ApiClient('/api', async () => 't', () => {}, ok).coa();
+    expect(ok).toHaveBeenCalledTimes(1);
+    await new ApiClient('/api', async () => null, () => {}, ok).coa();          // anonymous success is not "accepted"
+    globalThis.fetch = vi.fn(async () => new Response('{"error":"unauthenticated"}', { status: 401 })) as typeof fetch;
+    await new ApiClient('/api', async () => 't', () => {}, ok).me().catch(() => undefined);
+    expect(ok).toHaveBeenCalledTimes(1);
+  });
+
   it('uploads the raw file with a content type derived from its extension and an encoded name', async () => {
     const calls = stubFetch(202, { id: 'i1' });
     const file = new File(['Code,Name\n'], 'TB 2025 ميزان.csv');

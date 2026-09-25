@@ -10,6 +10,8 @@ export const ar: Record<MessageKey, string> = {
   'auth.devTokenSubmit': 'استخدام الرمز',
   'auth.unavailable': 'تسجيل الدخول غير مُعدّ لهذا العنوان.',
   'auth.expired': 'انتهت جلستك. يرجى تسجيل الدخول مجددًا.',
+  'auth.noAccess': 'تم تسجيل دخولك، لكن هذا الحساب لا يملك صلاحية الوصول إلى هذا المكتب. تواصل مع مسؤول المكتب أو استخدم حسابًا آخر.',
+  'auth.switchAccount': 'استخدام حساب آخر',
   'common.loading': 'جارٍ التحميل…',
   'common.retry': 'إعادة المحاولة',
   'common.cancel': 'إلغاء',

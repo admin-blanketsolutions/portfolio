@@ -6,6 +6,8 @@ import type { NextConfig } from 'next';
  */
 const config: NextConfig = {
   reactStrictMode: true,
+  // Separate build outputs let the mocked-API and real-IdP browser suites coexist.
+  distDir: process.env.NEXT_DIST_DIR ?? '.next',
   agentRules: false,                 // do not generate AGENTS.md / CLAUDE.md into the repository
   poweredByHeader: false,
   async headers() {

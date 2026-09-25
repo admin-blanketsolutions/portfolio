@@ -81,6 +81,9 @@ Implementing and testing the Phase 1 core surfaced defects that a design-only re
 5. **SQL guard false positive.** A naive `^\s*SET` check blocks every multi-line `UPDATE … \n SET …`. The guard inspects only the leading keyword and relies on the **extended protocol** (`queryMode: 'extended'`) to make multi-statement smuggling impossible.
 6. **Service principals reachable through the firm's IdP (fixed in V0010).** `resolve_principal` matched any user by `(issuer, sub)`, including `service` users. Whoever administers a firm's IdP could mint a token with a service principal's subject and obtain a context that bypasses the ethical walls. Service principals are now excluded from OIDC resolution; workers obtain their identity through `platform.service_principal_id`. Suite `80` A1b covers it, and a mutation that removes the exclusion fails the suite.
 7. **Spreadsheet rows silently dropped (fixed in the parser).** openpyxl's read-only mode trusts the workbook's `<dimension>` tag and stops there. A workbook that under-declares its size would have its trailing TB lines ignored, and the control totals would still reconcile because the parser computes them. The parser now resets dimensions and reads every row (`test_rows_beyond_a_lying_dimension_tag_are_not_dropped`, mutation-checked).
+8. **Signing keys fetched from a guessed URL (fixed).** The API looked for an issuer's keys at `<issuer>/.well-known/jwks.json`. Keycloak, Entra ID and Okta publish them elsewhere, so no real firm could have signed in. Keys are now located through OpenID Connect Discovery. The metadata must name exactly the registered issuer, both URLs must be https, redirects are refused, and a failed discovery is retried after a cool-down rather than on every request. This is covered by unit tests and by browser tests against a real Keycloak.
+9. **Tokens stored where the app could not find them (fixed in the web client).** Several components created the OIDC client at the same time. Each copy had its own in-memory token store, so the token saved by the login callback was invisible to the API client, and every real sign-in ended in "session ended". Development-token mode never ran this code. The client is now created once per page, and the real-IdP browser suite caught the bug.
+10. **An unprovisioned account looped between the IdP and the app (fixed in the web client).** The API deliberately answers "no such user" exactly like "bad token", which prevents account probing. The web app therefore showed "session ended", and the IdP's single sign-on signed the same account straight back in. The browser now recognises a rejection immediately after a successful sign-in and says the account has no access to this firm. It offers "Use a different account", and sign-out also ends the session at the IdP, which matters on shared computers.
 
 ---
 
@@ -142,9 +145,15 @@ ISA 230 frames the requirement: assemble the final file promptly (normally **wit
 
 ### 3.2 Controls
 
-**Ingestion sandbox (Phase 3 slice 1 implemented in `parser/`; items 1–2 need the container runtime):**
+**Ingestion sandbox (implemented in `parser/` and `backend/src/modules/tb-ingestion/container-parser.ts`, except the quarantine scan in item 1):**
 1. Upload to a *quarantine* bucket through a presigned PUT with a SHA-256 checksum; malware scan (GuardDuty Malware Protection for S3 or ClamAV) before promotion.
-2. Parse in an **isolated, network-less** worker (Fargate or Lambda with no NAT/egress, read-only root filesystem, non-root user, seccomp, CPU/memory/time limits, one file per invocation).
+2. Parse in an **isolated, network-less** worker (Fargate or Lambda with no NAT/egress, read-only root filesystem, non-root user, seccomp, CPU/memory/time limits, one file per invocation). *Implemented as a single-use container per file:*
+   * no network, a read-only root, a small noexec `/tmp`, all capabilities dropped (bounding set empty), no-new-privileges and a non-root user;
+   * caps on processes, memory and CPU, no environment variables or volumes, and no container logs of client data;
+   * the image is pinned by digest and never pulled at parse time; an optional gVisor runtime is supported;
+   * on time-out the container is removed, not just the client process.
+
+   *Tests execute probes with the adapter's exact flags, and removing any single flag fails a test. Production configuration refuses the unsandboxed subprocess driver.*
 3. Accept `.xlsx`/`.csv` only. Reject `.xlsm`/`.xlsb`/`.xls` and any VBA/XLM parts, or convert them in a second disposable sandbox if the firm opts in. *Implemented: extension + magic-byte checks at upload; OOXML pre-flight rejects VBA, XLM macro sheets, external/DDE links, OLE embeddings, ActiveX, data connections, DTDs, encrypted packages, zip bombs and unsafe part names.*
 4. Use `openpyxl` in `read_only=True, data_only=True` mode (cached values; **formulas are never evaluated**) with `defusedxml`; set limits on uncompressed size, compression ratio, rows, columns and string length. *Implemented, plus: a formula cell with no saved value is refused, and the `<dimension>` tag is not trusted (finding 7).*
 5. Normalize: NFKC; strip bidi controls; convert Arabic-Indic digits and separators; parse parenthesized negatives; fold Arabic letter variants for **matching only**. The verbatim name is kept for display (`client_account_name` vs `client_account_name_norm`). *Implemented in Python and ported to TypeScript; both are tested against the same golden vectors (`parser/tests/golden/normalization.json`).*

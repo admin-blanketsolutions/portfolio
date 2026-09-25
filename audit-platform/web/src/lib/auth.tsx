@@ -19,7 +19,11 @@ import { ApiClient } from './api';
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? '/api';
 const MODE = process.env.NEXT_PUBLIC_AUTH_MODE === 'dev-token' ? 'dev-token' : 'oidc';
 
-type Status = 'loading' | 'signed-out' | 'signed-in' | 'unavailable';
+// 'no-access': the firm's IdP signed the user in, but the platform has no
+// (active) user for that account. The API answers exactly as for a bad token,
+// so nobody can probe for accounts; only the browser that just completed a
+// sign-in can tell the two apart.
+type Status = 'loading' | 'signed-out' | 'signed-in' | 'no-access' | 'unavailable';
 
 export interface Auth {
   status: Status;
@@ -34,24 +38,30 @@ export interface Auth {
 
 /** Exported for tests, which provide a fake API through it. */
 export const AuthContext = createContext<Auth | null>(null);
-let sharedManager: UserManager | null = null;   // survives client-side navigation (callback -> app)
+// One manager per page, created once even when several components ask at the
+// same time: each UserManager has its own in-memory token store, so a second
+// instance would never see the tokens the callback stored in the first.
+let sharedManager: Promise<UserManager | null> | null = null;   // survives client-side navigation (callback -> app)
 let devToken: string | null = null;
 
-async function manager(): Promise<UserManager | null> {
-  if (sharedManager) return sharedManager;
-  const cfg = await new ApiClient(API_BASE, async () => null).authConfig().catch(() => null);
-  if (!cfg) return null;
-  sharedManager = new UserManager({
-    authority: cfg.issuer,
-    client_id: cfg.clientId,
-    redirect_uri: `${window.location.origin}/auth/callback`,
-    post_logout_redirect_uri: window.location.origin,
-    response_type: 'code',
-    scope: cfg.scope,
-    extraQueryParams: { audience: cfg.audience },
-    userStore: new WebStorageStateStore({ store: new InMemoryWebStorage() }),
-    automaticSilentRenew: false,
-  });
+function manager(): Promise<UserManager | null> {
+  sharedManager ??= new ApiClient(API_BASE, async () => null).authConfig().then(
+    (cfg) => new UserManager({
+      authority: cfg.issuer,
+      client_id: cfg.clientId,
+      redirect_uri: `${window.location.origin}/auth/callback`,
+      post_logout_redirect_uri: window.location.origin,
+      response_type: 'code',
+      scope: cfg.scope,
+      extraQueryParams: { audience: cfg.audience },
+      userStore: new WebStorageStateStore({ store: new InMemoryWebStorage() }),
+      automaticSilentRenew: false,
+    }),
+    () => {
+      sharedManager = null;              // login configuration unavailable: allow a retry later
+      return null;
+    },
+  );
   return sharedManager;
 }
 
@@ -60,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [expired, setExpired] = useState(false);
   const statusRef = useRef(status);
   statusRef.current = status;
+  const freshSignIn = useRef(false);   // no API call has accepted the new token yet
 
   const token = useCallback(async () => {
     if (MODE === 'dev-token') return devToken;
@@ -68,9 +79,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const api = useMemo(() => new ApiClient(API_BASE, token, () => {
+    if (freshSignIn.current) { setStatus('no-access'); return; }
     if (statusRef.current === 'signed-in') setExpired(true);
     setStatus('signed-out');
-  }), [token]);
+  }, () => { freshSignIn.current = false; }), [token]);
 
   useEffect(() => {
     void (async () => {
@@ -92,7 +104,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signInWithToken: (t: string) => { devToken = t.trim() || null; setExpired(false); setStatus(devToken ? 'signed-in' : 'signed-out'); },
     signOut: async () => {
       devToken = null;
+      freshSignIn.current = false;
       const m = MODE === 'oidc' ? await manager() : null;
+      const user = await m?.getUser();
+      if (m && user) {
+        // End the session at the firm's IdP too: on a shared computer the next
+        // person must not be signed straight back in as the previous user.
+        await m.signoutRedirect({ id_token_hint: user.id_token });
+        return;
+      }
       await m?.removeUser();
       setStatus('signed-out');
     },
@@ -100,6 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const m = await manager();
       if (!m) throw new Error('sign-in unavailable');
       const user = await m.signinRedirectCallback();
+      freshSignIn.current = true;
       setStatus('signed-in');
       setExpired(false);
       const returnTo = (user.state as { returnTo?: string } | undefined)?.returnTo;

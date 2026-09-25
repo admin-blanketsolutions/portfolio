@@ -35,11 +35,19 @@ export function AppShell({ children }: { children: ReactNode }) {
 }
 
 function SignIn() {
-  const { status, mode, signIn, signInWithToken, expired } = useAuth();
+  const { status, mode, signIn, signInWithToken, signOut, expired } = useAuth();
   const { t } = useI18n();
   const [token, setToken] = useState('');
   if (status === 'loading') return <p>{t('common.loading')}</p>;
   if (status === 'unavailable') return <Notice tone="error">{t('auth.unavailable')}</Notice>;
+  if (status === 'no-access') {
+    return (
+      <section className="panel signin">
+        <Notice tone="error">{t('auth.noAccess')}</Notice>
+        <button type="button" className="button" onClick={() => void signOut()}>{t('auth.switchAccount')}</button>
+      </section>
+    );
+  }
   return (
     <section className="panel signin">
       {expired && <Notice tone="info">{t('auth.expired')}</Notice>}

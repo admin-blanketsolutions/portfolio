@@ -2,7 +2,7 @@
   "name": "@audit-platform/api",
   "version": "0.1.0",
   "private": true,
-  "description": "Audit Management Platform — core API (Phase 1: tenancy, identity, secure data access)",
+  "description": "Audit Management Platform \u2014 core API (Phase 1: tenancy, identity, secure data access)",
   "license": "UNLICENSED",
   "engines": {
     "node": ">=22"
@@ -12,7 +12,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/main.js",
     "test": "vitest run",
-    "test:integration": "vitest run test/integration"
+    "test:integration": "vitest run test/integration",
+    "dev:stack": "npm run build && node scripts/dev-stack.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",

@@ -10,6 +10,7 @@ import type { ParseResult } from './parser-port.js';
 
 export type TbKind = 'current_unadjusted' | 'prior_year_final';
 export type ImportStatus = 'received' | 'processing' | 'imported' | 'failed';
+export type LineStatusFilter = 'all' | 'open' | 'pending' | 'accepted' | 'unmapped';
 
 export interface ImportRow {
   id: string;
@@ -271,18 +272,18 @@ export class TbIngestionRepository {
     };
   }
 
-  async reviewLines(tx: TenantTx, tbId: string, afterLine: number, limit: number) {
+  async reviewLines(tx: TenantTx, tbId: string, afterLine: number, limit: number, status: LineStatusFilter = 'all') {
     const { rows } = await tx.query<Record<string, any>>(
       `SELECT l.id, l.line_no, l.client_account_code, l.client_account_name, l.closing_balance::text AS closing,
               l.source_had_formula,
-              acc.id AS acc_id, acc.code AS acc_code, acc.name_en AS acc_name_en, acc.source AS acc_source,
+              acc.id AS acc_id, acc.code AS acc_code, acc.name_en AS acc_name_en, acc.name_ar AS acc_name_ar, acc.source AS acc_source,
               acc.decided_by AS acc_decided_by,
               sug.id AS sug_id, sug.code AS sug_code, sug.name_en AS sug_name_en, sug.name_ar AS sug_name_ar,
               sug.source AS sug_source, sug.confidence::float8 AS sug_confidence, sug.model_ref AS sug_model_ref,
               sug.rationale AS sug_rationale, sug.normal_balance AS sug_normal_balance, sug.coa_account_id AS sug_coa
          FROM app.tb_lines l
          LEFT JOIN LATERAL (
-           SELECT m.id, c.code, c.name_en, m.source, m.decided_by FROM app.account_mappings m
+           SELECT m.id, c.code, c.name_en, c.name_ar, m.source, m.decided_by FROM app.account_mappings m
              JOIN app.coa_accounts c ON c.tenant_id = m.tenant_id AND c.id = m.coa_account_id
             WHERE m.tenant_id = l.tenant_id AND m.tb_line_id = l.id AND m.status = 'accepted') acc ON true
          LEFT JOIN LATERAL (
@@ -293,7 +294,13 @@ export class TbIngestionRepository {
             WHERE m.tenant_id = l.tenant_id AND m.tb_line_id = l.id AND m.status = 'suggested'
             ORDER BY m.confidence DESC NULLS LAST, m.created_at DESC LIMIT 1) sug ON true
         WHERE l.trial_balance_id = $1 AND l.line_no > $2
-        ORDER BY l.line_no LIMIT $3`, [tbId, afterLine, limit]);
+          AND (CASE $4::text
+                 WHEN 'open'     THEN acc.id IS NULL
+                 WHEN 'accepted' THEN acc.id IS NOT NULL
+                 WHEN 'pending'  THEN acc.id IS NULL AND sug.id IS NOT NULL
+                 WHEN 'unmapped' THEN acc.id IS NULL AND sug.id IS NULL
+                 ELSE true END)
+        ORDER BY l.line_no LIMIT $3`, [tbId, afterLine, limit, status]);
     return rows;
   }
 

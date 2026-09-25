@@ -62,3 +62,25 @@ jobs:
           ADMIN_DATABASE_URL: postgresql://postgres@localhost:5432/${{ steps.sql.outputs.db }}
           DATABASE_URL: postgresql://audit_app_it:it-only@localhost:5432/${{ steps.sql.outputs.db }}
         run: npm test
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: audit-platform/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: audit-platform/web/package-lock.json
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Component tests (vitest + Testing Library)
+        run: npm test
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Browser tests (production build, strict CSP, mocked API)
+        run: npm run test:e2e

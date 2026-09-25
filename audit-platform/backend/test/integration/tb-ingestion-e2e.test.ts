@@ -197,6 +197,36 @@ describe.skipIf(!enabled)('TB ingestion end-to-end: upload -> sandbox -> cascade
     expect(foreign.status).toBe(404);
   });
 
+  it('filters review lines by decision status', async () => {
+    const count = async (status: string) => (await call('GET', `/trial-balances/${tbId}/lines?status=${status}`, 'junior')).body.lines.length;
+    expect(await count('pending')).toBe(8);
+    expect(await count('open')).toBe(8);
+    expect(await count('accepted')).toBe(0);
+    expect(await count('unmapped')).toBe(0);
+    expect((await call('GET', `/trial-balances/${tbId}/lines?status=bogus`, 'junior')).status).toBe(422);
+  });
+
+  it('serves the web login configuration per tenant host, publicly and without enumeration', async () => {
+    const publicGet = (path: string, host: string) => new Promise<Res>((resolve, reject) => {
+      http.get({ host: '127.0.0.1', port, path, headers: { host } }, (res) => {
+        let data = '';
+        res.on('data', (c) => { data += c; });
+        res.on('end', () => resolve({ status: res.statusCode ?? 0, body: data ? JSON.parse(data) : undefined }));
+      }).on('error', reject);
+    });
+    expect((await publicGet('/auth/config', ALPHA)).status).toBe(404);             // no web client registered yet
+    await admin.query('SELECT platform.set_web_client($1, $2)', [fx.tenants.alpha, 'alpha-web']);
+    const cfg = await publicGet('/auth/config', ALPHA);
+    expect(cfg).toEqual({ status: 200, body: { tenant: 'alpha-audit', issuer: ISS.alpha, clientId: 'alpha-web', audience: AUD, scope: 'openid profile' } });
+    expect((await publicGet('/auth/config', 'nope-audit.app.test')).status).toBe(404);
+    expect((await publicGet('/auth/config', 'alpha-audit.app.test.evil.io')).status).toBe(404);
+    expect((await admin.query('SELECT platform.set_web_client($1, $2)', [fx.tenants.alpha, 'bad client id'])
+      .catch((e: Error) => e)) instanceof Error).toBe(true);
+
+    const me = await call('GET', '/me', 'senior');
+    expect(me.body).toMatchObject({ tenant: 'alpha-audit', kind: 'staff', isFirmAdmin: false, displayName: 'Senior', rank: 'senior' });
+  });
+
   it('bulk-accepts clean suggestions, forces individual review of flagged ones, and records the human', async () => {
     const lines = (await call('GET', `/trial-balances/${tbId}/lines`, 'junior')).body.lines as any[];
     const bulk = await call('POST', `/trial-balances/${tbId}/bulk-accept`, 'junior',
@@ -204,6 +234,8 @@ describe.skipIf(!enabled)('TB ingestion end-to-end: upload -> sandbox -> cascade
     expect(bulk.status).toBe(200);
     expect(bulk.body.accepted).toHaveLength(7);
     expect(bulk.body.skipped).toEqual([expect.objectContaining({ reason: 'flagged' })]);
+    const acceptedNow = (await call('GET', `/trial-balances/${tbId}/lines?status=accepted`, 'junior')).body.lines as any[];
+    expect(acceptedNow.find((l) => l.code === '120').accepted).toMatchObject({ coaCode: '1100', coaNameAr: 'ذمم مدينة تجارية', source: 'exact' });
 
     const injected = lines.find((l) => l.code === '401');
     const blind = await call('POST', `/mappings/${injected.suggestion.mappingId}/accept`, 'junior', {});

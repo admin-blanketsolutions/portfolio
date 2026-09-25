@@ -27,6 +27,7 @@ const UploadQuery = z.object({
 const LinesQuery = z.object({
   afterLine: z.coerce.number().int().min(0).default(0),
   limit: z.coerce.number().int().min(1).max(500).default(200),
+  status: z.enum(['all', 'open', 'pending', 'accepted', 'unmapped']).default('all'),
 });
 const AcceptBody = z.object({ acknowledgeFlags: z.boolean().default(false) }).default({ acknowledgeFlags: false });
 const BulkAcceptBody = z.object({ mappingIds: z.array(Uuid).min(1).max(500) });
@@ -139,18 +140,19 @@ export class TbIngestionController {
   @Get('trial-balances/:id/lines')
   async lines(@Param('id') id: string, @Query() query: unknown) {
     const tbId = parse(Uuid, id);
-    const { afterLine, limit } = parse(LinesQuery, query);
+    const { afterLine, limit, status } = parse(LinesQuery, query);
     return this.db.transaction(async (tx) => {
       const tb = await this.repo.trialBalance(tx, tbId);
       if (!tb) notFound();
-      const rows = await this.repo.reviewLines(tx, tbId, afterLine, limit);
+      const rows = await this.repo.reviewLines(tx, tbId, afterLine, limit, status);
       const load = await this.repo.accountLoad(tx, tbId);
       const concentrated = concentratedAccounts(load.counts, load.lines);
       const lines = rows.map((r) => ({
         id: r.id, lineNo: r.line_no, code: r.client_account_code, name: r.client_account_name, closing: r.closing,
         hadFormula: r.source_had_formula,
         flags: nameFlags(r.client_account_name),
-        accepted: r.acc_id ? { mappingId: r.acc_id, coaCode: r.acc_code, coaNameEn: r.acc_name_en, source: r.acc_source, decidedBy: r.acc_decided_by } : null,
+        accepted: r.acc_id ? { mappingId: r.acc_id, coaCode: r.acc_code, coaNameEn: r.acc_name_en, coaNameAr: r.acc_name_ar,
+                               source: r.acc_source, decidedBy: r.acc_decided_by } : null,
         suggestion: r.sug_id ? {
           mappingId: r.sug_id, coaCode: r.sug_code, coaNameEn: r.sug_name_en, coaNameAr: r.sug_name_ar, source: r.sug_source,
           confidence: r.sug_confidence, modelRef: r.sug_model_ref, rationale: r.sug_rationale,

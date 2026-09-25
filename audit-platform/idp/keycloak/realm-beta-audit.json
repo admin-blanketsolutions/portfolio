@@ -1,0 +1,66 @@
+{
+  "realm": "beta-audit",
+  "enabled": true,
+  "sslRequired": "all",
+  "displayName": "Beta Audit (TEST IdP)",
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "bruteForceProtected": true,
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "clients": [
+    {
+      "clientId": "audit-web",
+      "name": "Audit platform (web)",
+      "protocol": "openid-connect",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": false,
+      "redirectUris": [
+        "http://beta-audit.localhost:3101/auth/callback"
+      ],
+      "webOrigins": [
+        "http://beta-audit.localhost:3101"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://beta-audit.localhost:3101"
+      },
+      "protocolMappers": [
+        {
+          "name": "audit-platform-api audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "audit-platform-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "id": "idp|beta-senior",
+      "username": "senior",
+      "firstName": "Basma",
+      "lastName": "Senior",
+      "email": "senior@beta.test",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "test-only-beta-senior",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

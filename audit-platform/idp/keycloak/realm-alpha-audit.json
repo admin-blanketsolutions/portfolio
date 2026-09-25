@@ -1,0 +1,98 @@
+{
+  "realm": "alpha-audit",
+  "enabled": true,
+  "sslRequired": "all",
+  "displayName": "Alpha Audit (TEST IdP)",
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "bruteForceProtected": true,
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "clients": [
+    {
+      "clientId": "audit-web",
+      "name": "Audit platform (web)",
+      "protocol": "openid-connect",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": false,
+      "redirectUris": [
+        "http://alpha-audit.localhost:3101/auth/callback"
+      ],
+      "webOrigins": [
+        "http://alpha-audit.localhost:3101"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://alpha-audit.localhost:3101"
+      },
+      "protocolMappers": [
+        {
+          "name": "audit-platform-api audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "audit-platform-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "id": "idp|alpha-senior",
+      "username": "senior",
+      "firstName": "Sara",
+      "lastName": "Senior",
+      "email": "senior@alpha.test",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "test-only-alpha-senior",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "idp|alpha-junior",
+      "username": "junior",
+      "firstName": "Jad",
+      "lastName": "Junior",
+      "email": "junior@alpha.test",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "test-only-alpha-junior",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "idp|alpha-outsider",
+      "username": "outsider",
+      "firstName": "Omar",
+      "lastName": "Outsider",
+      "email": "outsider@alpha.test",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "test-only-alpha-outsider",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

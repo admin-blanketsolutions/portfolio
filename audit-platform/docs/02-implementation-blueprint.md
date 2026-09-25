@@ -83,7 +83,7 @@ Indicative effort for a team of 6–8 engineers (2 backend, 1 data/AI, 2 fronten
 | Tenancy runtime | Signed context, ALS, guard, interceptor, TenantDb, SQL guard, error mapping, job envelopes, tenant cache, tenant object store, example module | ✅ `backend/src` |
 | Tests | 8 SQL suites (lint, isolation, walls, sign-off, TB/AJE/roll-up, chain tamper, lifecycle, authn) + 78 TS tests (unit, DB integration, HTTP e2e) | ✅ |
 | Platform | Terraform landing zone (accounts, SCPs, VPC, RDS PG16 with IAM auth + `pgaudit`, KMS, Secrets Manager, ElastiCache, S3 Object Lock buckets, CloudTrail org trail → log-archive) | ☐ next |
-| Identity | Per-tenant OIDC onboarding; Keycloak realm template; MFA enforcement | ☐ |
+| Identity | Per-tenant OIDC onboarding; Keycloak realm template; MFA enforcement | ◐ OIDC discovery, per-firm web client, sign-in and IdP sign-out tested against real Keycloak realms; production realm template with MFA ☐ |
 | CI/CD | Pipelines: lint, typecheck, unit, SQL suites against an ephemeral PG, integration, SAST/SCA/IaC scan, SBOM, signed images | ◐ workflow included |
 | Governance | ISMS scope, risk register (from `03`), SoA draft, DPIA for PDPL, sub-processor register | ☐ |
 
@@ -108,7 +108,8 @@ Indicative effort for a team of 6–8 engineers (2 backend, 1 data/AI, 2 fronten
 | Cascade | carry-forward (previous TB version, prior-year locked TB — same client only) → firm rules → exact name (COA or client history) → LLM (Claude, schema-constrained to the firm's postable codes) → human decision | ✅ embedding stage ☐ |
 | Review API | status polling, lines with provenance and flags, accept/reject/manual, bulk accept of unflagged, lock | ✅ HTTP e2e |
 | Review UI | `web/`: Next.js 16, OIDC PKCE (tokens in memory only), per-tenant login discovery (`V0011`, `/auth/config`), upload with status polling, lines with provenance/flags, bulk accept of unflagged only, explicit acknowledgement for flagged, manual mapping with a recorded reason, lock; EN/AR with RTL; exact string-based amounts; per-request nonce CSP with `strict-dynamic` | ✅ vitest + Playwright |
-| Still to build | container sandbox runner (network-less Fargate/Lambda) and S3 + Object Lock adapter; embedding kNN stage; evaluation harness and red-team CI gate against a real model; multi-currency / IAS 21; keyboard-first review at 50k lines (virtualised table); accessibility audit (WCAG 2.2 AA) | ☐ |
+| Deployability | S3 + Object Lock adapter (create-only writes, checksums both ways, boot-time bucket verification); network-less single-use parser container (digest-pinned image, isolation proven by probes); production config refuses the in-memory store and the unsandboxed parser | ✅ moto + Docker suites |
+| Still to build | quarantine bucket + malware scan before parsing; embedding kNN stage; evaluation harness and red-team CI gate against a real model; multi-currency / IAS 21; keyboard-first review at 50k lines (virtualised table); accessibility audit (WCAG 2.2 AA) | ☐ |
 
 * Sandboxed parser (Python) with the hardening in `01 §3.2`; Arabic normalization library with golden tests.
 * Mapping cascade (carry-forward → rules → exact → embedding → LLM) with `model_ref` provenance and a human-decision UI (bulk accept with per-row flags).

@@ -8,6 +8,8 @@ export const en = {
   'auth.devTokenSubmit': 'Use token',
   'auth.unavailable': 'Sign-in is not configured for this address.',
   'auth.expired': 'Your session has ended. Please sign in again.',
+  'auth.noAccess': "You signed in, but this account has no access to this firm. Ask your firm's administrator, or use a different account.",
+  'auth.switchAccount': 'Use a different account',
   'common.loading': 'Loading…',
   'common.retry': 'Retry',
   'common.cancel': 'Cancel',

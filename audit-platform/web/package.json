@@ -15,6 +15,7 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:idp": "playwright test -c playwright.idp.config.ts",
     "smoke:fullstack": "node scripts/fullstack-smoke.mjs"
   },
   "dependencies": {

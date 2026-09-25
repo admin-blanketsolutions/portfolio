@@ -10,6 +10,7 @@ A multi-tenant SaaS core for audit firms (ISA / ISQM, IFRS, ISO/IEC 27001, Jorda
 | 3.2 | Core relational schema (SQL DDL) + data model & indexing | [`db/migrations/`](db/migrations), [`docs/04-data-model-and-indexing.md`](docs/04-data-model-and-indexing.md) |
 | 3.3 | Backend skeleton for secure tenant context switching | [`backend/src/`](backend/src) |
 | P3.1 | Trial-balance import & AI-assisted mapping: sandboxed parser, mapping cascade, review API, lock | [`parser/`](parser), [`V0010`](db/migrations/V0010__tb_ingestion_and_mapping.sql), [`backend/src/modules/tb-ingestion/`](backend/src/modules/tb-ingestion) |
+| D1 | Deployable storage, sandbox and sign-in: S3 + Object Lock adapter, network-less parser container, OIDC discovery, sign-in tested against a real Keycloak | [`backend/src/storage/`](backend/src/storage), [`parser/Dockerfile`](parser/Dockerfile), [`idp/keycloak/`](idp/keycloak), [Deploying](#deploying) |
 | P3.2 | Mapping review UI (Next.js, EN/AR + RTL, strict CSP), per-tenant web login config, `/auth/config` + `/me` | [`web/`](web), [`V0011`](db/migrations/V0011__web_login_config.sql), [`backend/src/modules/session/`](backend/src/modules/session) |
 
 ## Layout
@@ -33,6 +34,7 @@ audit-platform/
 │   ├── tests/                                    00_fixtures + 9 SQL security/integrity suites
 │   └── scripts/test.sh                           fresh DB → migrate → fixtures → suites
 ├── parser/                                       sandboxed TB parser (Python): xlsx/csv -> typed lines + control totals
+│   ├── Dockerfile    single-use, network-less parser image (hash-pinned wheels, non-root, no pip)
 │   ├── tb_parser/    OOXML pre-flight, header/layout detection (EN/AR), amounts, normalisation, CLI
 │   └── tests/        unit, property-based (Hypothesis), malicious-workbook corpus, shared golden vectors
 ├── backend/
@@ -41,11 +43,12 @@ audit-platform/
 │   │   ├── database/     pool, TenantDb (tx-local signed context), SQL guard
 │   │   ├── jobs/         sealed job envelopes, in-process queue
 │   │   ├── cache/        tenant/user-scoped cache keys
-│   │   ├── storage/      tenant-bound S3 keys, per-tenant KMS, Object Lock
+│   │   ├── storage/      tenant-bound keys, per-tenant KMS, Object Lock; S3 adapter with boot-time bucket checks
 │   │   ├── common/       domain errors, safe PG error mapping, exception filter
 │   │   └── modules/      engagements, tb-ingestion (upload, worker, cascade, LLM stage, review API), session, health
-│   ├── scripts/          dev-stack.mjs: local API + dev IdP/token helper (development only)
+│   ├── scripts/          dev-stack.mjs (local API + dev tokens), link-test-idp.mjs (test DB -> test Keycloak)
 │   └── test/             unit · integration · HTTP e2e (135 tests)
+├── idp/keycloak/                                 TEST realms + start script for real-IdP sign-in tests
 ├── web/                                          Next.js review UI (see web/README.md)
 │   ├── app/ · src/       pages, components, API client, OIDC PKCE auth, EN/AR catalogs, amount formatting
 │   └── tests/            vitest + Testing Library (unit/component) · Playwright (real build, mocked API)
@@ -108,7 +111,20 @@ npx playwright install chromium   # or PW_CHROMIUM_PATH=/path/to/chromium
 npm run test:e2e
 ```
 
-CI runs all of them (SQL and backend against a `postgres:16` service): `.github/workflows/audit-platform-ci.yml`.
+```bash
+# 4. Storage, sandbox and sign-in against real services (each is skipped without its variable)
+python3 -m venv /tmp/moto && /tmp/moto/bin/pip install "moto[server]==5.2.3" && /tmp/moto/bin/moto_server -p 4566 &
+docker build -t audit-tb-parser:test parser
+cd backend
+S3_TEST_ENDPOINT=http://127.0.0.1:4566 TB_PARSER_IMAGE=audit-tb-parser:test npm test   # + S3 and container suites
+# the TB end-to-end suite again, with every file parsed in the container (needs a fresh DB from step 1):
+TB_PARSER_DRIVER=container TB_PARSER_IMAGE=audit-tb-parser:test npx vitest run test/integration/tb-ingestion-e2e.test.ts
+npm run build && cd ..
+TEST_IDP_DIR=/tmp/audit-test-idp ./idp/keycloak/start-test-idp.sh /tmp/audit-test-idp   # Keycloak on https://localhost:8443
+cd web && TEST_IDP_DIR=/tmp/audit-test-idp ADMIN_DATABASE_URL=… DATABASE_URL=… npm run test:idp
+```
+
+CI runs all of them: `.github/workflows/audit-platform-ci.yml`.
 
 ### Running the whole stack locally
 
@@ -135,7 +151,32 @@ cd web && NEXT_PUBLIC_AUTH_MODE=dev-token API_ORIGIN=http://127.0.0.1:3000 npm r
 | `90_tb_ingestion` | Uploads by engagement staff only; status machine run only by the ingestion principal; an import binds only to the TB built from its own file; machine vs human provenance on mappings; postable-only targets; admin-only rules; walls; chained |
 | `parser/tests` | Hostile workbooks (VBA, XLM, DDE/external links, OLE, ActiveX, XXE, billion laughs, zip bombs, zip-slip, sparse 1M-row sheets, lying dimension tag), formula handling, EN/AR two-row headers, Arabic digits, control totals exact under Hypothesis |
 | `web/tests` | Only unflagged suggestions reach a bulk acceptance; flagged ones need an explicit acknowledgement; hostile account names render as inert, direction-isolated text; debit/credit columns; EN↔AR with RTL; in a real browser: upload → poll → review → map → lock with zero CSP violations, fresh nonce per request, no `unsafe-inline`/`unsafe-eval` |
+| `s3-object-store` (moto) | Boot refuses a bucket without Object Lock / versioning / SSE-KMS / public-access block; objects land under COMPLIANCE retention with the tenant's key and tags; a locked version cannot be deleted; no overwrite (`If-None-Match`); checksum mismatch refused; oversized reads refused; presigned downloads expire in ≤ 5 min and force `attachment` |
+| `container-parser` (Docker) | Probes run with the adapter's exact flags. They find no network (only `lo`, no DNS), a read-only root, a noexec `/tmp`, empty effective and bounding capability sets, no-new-privs, uid 65532 and no inherited secrets. A fork bomb is capped. A time-out removes the container. An OOM kill is reported as a resource limit, and a missing image is our error rather than the uploader's. Removing any single flag fails a test. |
+| `web/tests/idp` (Keycloak) | Real authorization code + PKCE per firm realm; the API verifies Keycloak's tokens via discovery; a firm's token is refused on another firm's host; forged signature refused; unprovisioned account told it has no access and can switch; tokens only in memory; sign-out ends the IdP session |
 | `backend/test` | HMAC compatibility TS↔SQL, 400-flow ALS isolation, 60 interleaved transactions on a pool of 3 without leakage, HTTP e2e with real ES256 JWTs from two independent IdPs, 40 concurrent cross-tenant requests, safe error mapping; TB e2e: upload → real sandboxed parser → cascade → flags → bulk/individual/manual decisions → lock → FS roll-up, LLM gate and data minimisation, carry-forward, forged/replayed job envelopes, attribution in the audit chain |
+
+## Deploying
+
+Production configuration is validated at boot, and the API refuses to start unless:
+
+* `OBJECT_STORE_DRIVER=s3`, with `S3_EXPECTED_BUCKET_OWNER` set. Any `S3_ENDPOINT` must be https.
+* The bucket named by `TB_SOURCE_BUCKET` passes these checks, which are verified live at start-up:
+  * Object Lock enabled;
+  * versioning enabled;
+  * default encryption SSE-KMS;
+  * all four public-access-block settings on.
+
+  Objects are written create-only (`If-None-Match: *`), under COMPLIANCE retention, with the tenant's KMS key from `TENANT_KMS_KEY_TEMPLATE` (default `alias/audit-tenant-{tenantId}`). Each key's policy must bind it to its tenant. Credentials come from the task or instance role.
+* `TB_PARSER_DRIVER=container`, with `TB_PARSER_IMAGE` pinned by digest (`…@sha256:…`). The worker host needs Docker or Podman, and the image must be pulled in advance: parsing never pulls. Set `TB_PARSER_RUNTIME=runsc` where gVisor is installed.
+
+Each firm's IdP is onboarded with:
+* an **https** issuer in `platform.tenants.oidc_issuer`, whose `/.well-known/openid-configuration` names exactly that issuer;
+* a public client for the web app (authorization code + PKCE S256) with redirect URI `https://<slug>.<domain>/auth/callback`, set with `platform.set_web_client`;
+* an audience mapper that adds `OIDC_AUDIENCE` to access tokens;
+* users whose IdP subject (`sub`) matches `app.users.idp_subject`.
+
+`idp/keycloak/realm-*.json` show this for Keycloak. Those files are test realms, with known passwords and no MFA; production realms must enforce MFA. The web app needs `AUTH_CONNECT_SRC` to list the IdP origins, because the browser calls the IdP's token endpoint.
 
 ## Security posture in one paragraph
 

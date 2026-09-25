@@ -17,7 +17,13 @@ type TokenSource = () => Promise<string | null>;
  * Error bodies are the API's own safe envelope ({error, message}).
  */
 export class ApiClient {
-  constructor(private readonly base: string, private readonly token: TokenSource, private readonly onUnauthenticated: () => void = () => {}) {}
+  constructor(
+    private readonly base: string,
+    private readonly token: TokenSource,
+    private readonly onUnauthenticated: () => void = () => {},
+    /** Called when the API accepted our token (any authenticated success). */
+    private readonly onAuthenticated: () => void = () => {},
+  ) {}
 
   private async request<T>(method: string, path: string, init: { json?: unknown; body?: Blob | ArrayBuffer; contentType?: string } = {}): Promise<T> {
     const headers: Record<string, string> = { accept: 'application/json' };
@@ -34,6 +40,7 @@ export class ApiClient {
     const res = await fetch(`${this.base}${path}`, { method, headers, ...(body !== undefined ? { body } : {}), credentials: 'omit', cache: 'no-store' });
     const text = await res.text();
     const data = text ? safeJson(text) : undefined;
+    if (res.ok && token) this.onAuthenticated();
     if (!res.ok) {
       if (res.status === 401) this.onUnauthenticated();
       const err = (data ?? {}) as { error?: string; message?: string };

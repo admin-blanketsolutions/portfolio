@@ -20,6 +20,7 @@ The reviewer's interface for Phase 3 trial-balance import and mapping. Next.js 1
 | Concern | Choice |
 |---|---|
 | Tokens | OIDC authorization code + PKCE (`oidc-client-ts`). Tokens are kept **in memory only** (no localStorage/sessionStorage); a reload signs in again. The post-login `returnTo` must be a same-origin path. |
+| Sign-out and no-access | Sign-out also ends the session at the firm's IdP (RP-initiated logout), so the next person on a shared computer is not signed straight back in. The API answers an unprovisioned account exactly like a bad token, to prevent account probing. The browser therefore detects a rejection that comes immediately after a successful sign-in, and shows "no access to this firm" with "Use a different account". |
 | Login discovery | `GET /api/auth/config` returns the tenant's own issuer and public web client id, resolved from the `Host` (`V0011`). Tenants are never enumerable from the browser. |
 | Client-supplied text | Account names are untrusted: React text nodes only (no `dangerouslySetInnerHTML`), wrapped in `<bdi dir="auto">` so Arabic/Latin/bidi controls cannot reorder surrounding UI. |
 | CSP | `proxy.ts` issues a fresh nonce per request: `script-src 'self' 'nonce-…' 'strict-dynamic'`, nonce-only `style-src`, `object-src 'none'`, `frame-ancestors 'none'`, `base-uri 'self'`, `form-action 'self'`, `connect-src` limited to the app and its IdPs. `unsafe-eval` and `style-src 'unsafe-inline'` are added **only** under `next dev`. Pages render dynamically so every response carries its own nonce. |
@@ -42,6 +43,7 @@ npm run dev              # :3001
 npm run typecheck        # next typegen + tsc
 npm test                 # vitest + Testing Library (jsdom)
 npm run test:e2e         # Playwright: production build on :3101, dev-token mode, mocked API
+npm run test:idp         # Playwright: real OIDC sign-in via Keycloak + the real API and test DB (see playwright.idp.config.ts)
 npm run smoke:fullstack  # manual: drives the real API from backend `npm run dev:stack` (see script header)
 ```
 

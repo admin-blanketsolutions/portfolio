@@ -1,0 +1,611 @@
+[
+ {
+  "code": "1000",
+  "nameEn": "Cash on hand",
+  "nameAr": "النقد في الصندوق",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1010",
+  "nameEn": "Cash at banks - current accounts",
+  "nameAr": "النقد لدى البنوك - حسابات جارية",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1020",
+  "nameEn": "Short-term bank deposits",
+  "nameAr": "ودائع بنكية قصيرة الأجل",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1030",
+  "nameEn": "Cheques under collection",
+  "nameAr": "شيكات برسم التحصيل",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1100",
+  "nameEn": "Trade receivables",
+  "nameAr": "ذمم مدينة تجارية",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1105",
+  "nameEn": "Allowance for expected credit losses",
+  "nameAr": "مخصص الخسائر الائتمانية المتوقعة",
+  "accountClass": "asset",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "1110",
+  "nameEn": "Post-dated cheques receivable",
+  "nameAr": "شيكات مؤجلة القبض",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1120",
+  "nameEn": "Due from related parties",
+  "nameAr": "مطلوب من جهات ذات علاقة",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1130",
+  "nameEn": "Employee receivables and advances",
+  "nameAr": "ذمم وسلف الموظفين",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1140",
+  "nameEn": "Prepaid expenses",
+  "nameAr": "مصاريف مدفوعة مقدماً",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1150",
+  "nameEn": "Refundable deposits",
+  "nameAr": "تأمينات مستردة",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1160",
+  "nameEn": "Advances to suppliers",
+  "nameAr": "دفعات مقدمة للموردين",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1170",
+  "nameEn": "Sales tax recoverable (input tax)",
+  "nameAr": "ضريبة المبيعات المستردة (مدخلات)",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1180",
+  "nameEn": "Other receivables",
+  "nameAr": "ذمم مدينة أخرى",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1200",
+  "nameEn": "Inventory - raw materials",
+  "nameAr": "مخزون مواد خام",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1210",
+  "nameEn": "Inventory - finished goods",
+  "nameAr": "مخزون بضاعة جاهزة",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1220",
+  "nameEn": "Inventory - goods for resale",
+  "nameAr": "مخزون بضاعة بغرض البيع",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1230",
+  "nameEn": "Goods in transit",
+  "nameAr": "بضاعة في الطريق",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1300",
+  "nameEn": "Land",
+  "nameAr": "أراضي",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1310",
+  "nameEn": "Buildings",
+  "nameAr": "مباني",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1320",
+  "nameEn": "Machinery and equipment",
+  "nameAr": "آلات ومعدات",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1330",
+  "nameEn": "Vehicles",
+  "nameAr": "وسائط نقل",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1340",
+  "nameEn": "Furniture and fixtures",
+  "nameAr": "أثاث وتجهيزات",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1350",
+  "nameEn": "Computers and IT equipment",
+  "nameAr": "أجهزة حاسوب",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1360",
+  "nameEn": "Accumulated depreciation - property and equipment",
+  "nameAr": "مجمع استهلاك الممتلكات والمعدات",
+  "accountClass": "asset",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "1370",
+  "nameEn": "Projects under construction",
+  "nameAr": "مشاريع تحت التنفيذ",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1400",
+  "nameEn": "Intangible assets - software",
+  "nameAr": "موجودات غير ملموسة - برامج",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1410",
+  "nameEn": "Right-of-use assets",
+  "nameAr": "موجودات حق الاستخدام",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1420",
+  "nameEn": "Investment property",
+  "nameAr": "استثمارات عقارية",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "1430",
+  "nameEn": "Financial assets at fair value through OCI",
+  "nameAr": "موجودات مالية بالقيمة العادلة من خلال الدخل الشامل الآخر",
+  "accountClass": "asset",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "2000",
+  "nameEn": "Trade payables",
+  "nameAr": "ذمم دائنة تجارية",
+  "accountClass": "liability",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "2010",
+  "nameEn": "Accrued expenses",
+  "nameAr": "مصاريف مستحقة",
+  "accountClass": "liability",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "2020",
+  "nameEn": "Contract liabilities (customer advances)",
+  "nameAr": "دفعات مقدمة من العملاء",
+  "accountClass": "liability",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "2030",
+  "nameEn": "Due to related parties",
+  "nameAr": "مطلوب لجهات ذات علاقة",
+  "accountClass": "liability",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "2040",
+  "nameEn": "Post-dated cheques payable",
+  "nameAr": "شيكات آجلة الدفع",
+  "accountClass": "liability",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "2050",
+  "nameEn": "Income tax payable",
+  "nameAr": "مخصص ضريبة الدخل",
+  "accountClass": "liability",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "2060",
+  "nameEn": "Sales tax payable (output tax)",
+  "nameAr": "ضريبة المبيعات المستحقة",
+  "accountClass": "liability",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "2070",
+  "nameEn": "Social security payable",
+  "nameAr": "اشتراكات الضمان الاجتماعي المستحقة",
+  "accountClass": "liability",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "2080",
+  "nameEn": "Provision for end-of-service indemnity",
+  "nameAr": "مخصص مكافأة نهاية الخدمة",
+  "accountClass": "liability",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "2090",
+  "nameEn": "Other payables",
+  "nameAr": "ذمم دائنة أخرى",
+  "accountClass": "liability",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "2100",
+  "nameEn": "Bank overdrafts",
+  "nameAr": "بنوك دائنة",
+  "accountClass": "liability",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "2110",
+  "nameEn": "Short-term loans",
+  "nameAr": "قروض قصيرة الأجل",
+  "accountClass": "liability",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "2120",
+  "nameEn": "Long-term loans",
+  "nameAr": "قروض طويلة الأجل",
+  "accountClass": "liability",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "2130",
+  "nameEn": "Lease liabilities",
+  "nameAr": "التزامات عقود الإيجار",
+  "accountClass": "liability",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "2140",
+  "nameEn": "Dividends payable",
+  "nameAr": "أرباح موزعة مستحقة الدفع",
+  "accountClass": "liability",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "2150",
+  "nameEn": "Deposits received (guarantees)",
+  "nameAr": "أمانات وتأمينات مستلمة",
+  "accountClass": "liability",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "3000",
+  "nameEn": "Share capital",
+  "nameAr": "رأس المال المدفوع",
+  "accountClass": "equity",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "3010",
+  "nameEn": "Statutory reserve",
+  "nameAr": "احتياطي إجباري",
+  "accountClass": "equity",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "3020",
+  "nameEn": "Voluntary reserve",
+  "nameAr": "احتياطي اختياري",
+  "accountClass": "equity",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "3030",
+  "nameEn": "Retained earnings",
+  "nameAr": "أرباح مدورة",
+  "accountClass": "equity",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "3040",
+  "nameEn": "Partners' current accounts",
+  "nameAr": "جاري الشركاء",
+  "accountClass": "equity",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "3050",
+  "nameEn": "Fair value reserve",
+  "nameAr": "احتياطي القيمة العادلة",
+  "accountClass": "equity",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "4000",
+  "nameEn": "Revenue from sale of goods",
+  "nameAr": "إيرادات المبيعات",
+  "accountClass": "revenue",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "4010",
+  "nameEn": "Revenue from services",
+  "nameAr": "إيرادات الخدمات",
+  "accountClass": "revenue",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "4020",
+  "nameEn": "Sales returns and allowances",
+  "nameAr": "مردودات ومسموحات المبيعات",
+  "accountClass": "revenue",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "4030",
+  "nameEn": "Sales discounts",
+  "nameAr": "خصم مسموح به",
+  "accountClass": "revenue",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "4100",
+  "nameEn": "Interest income",
+  "nameAr": "إيرادات فوائد بنكية",
+  "accountClass": "revenue",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "4110",
+  "nameEn": "Rental income",
+  "nameAr": "إيرادات إيجارات",
+  "accountClass": "revenue",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "4120",
+  "nameEn": "Gain on disposal of property and equipment",
+  "nameAr": "أرباح بيع ممتلكات ومعدات",
+  "accountClass": "revenue",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "4130",
+  "nameEn": "Other income",
+  "nameAr": "إيرادات أخرى",
+  "accountClass": "revenue",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "5000",
+  "nameEn": "Cost of goods sold",
+  "nameAr": "تكلفة البضاعة المباعة",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5010",
+  "nameEn": "Purchases",
+  "nameAr": "مشتريات",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5020",
+  "nameEn": "Purchase returns",
+  "nameAr": "مردودات المشتريات",
+  "accountClass": "expense",
+  "normalBalance": "credit"
+ },
+ {
+  "code": "5100",
+  "nameEn": "Salaries and wages",
+  "nameAr": "رواتب وأجور",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5110",
+  "nameEn": "Social security contribution - employer",
+  "nameAr": "مساهمة الشركة في الضمان الاجتماعي",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5120",
+  "nameEn": "Employee benefits (health insurance)",
+  "nameAr": "منافع الموظفين (تأمين صحي)",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5130",
+  "nameEn": "End-of-service indemnity expense",
+  "nameAr": "مصروف مكافأة نهاية الخدمة",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5200",
+  "nameEn": "Rent expense",
+  "nameAr": "إيجارات",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5210",
+  "nameEn": "Utilities (electricity and water)",
+  "nameAr": "كهرباء ومياه",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5220",
+  "nameEn": "Telecommunications and internet",
+  "nameAr": "اتصالات وإنترنت",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5230",
+  "nameEn": "Repairs and maintenance",
+  "nameAr": "صيانة وإصلاحات",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5240",
+  "nameEn": "Fuel and vehicle expenses",
+  "nameAr": "محروقات ومصاريف سيارات",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5250",
+  "nameEn": "Stationery and printing",
+  "nameAr": "قرطاسية ومطبوعات",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5260",
+  "nameEn": "Professional and legal fees",
+  "nameAr": "أتعاب مهنية وقانونية",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5270",
+  "nameEn": "Advertising and marketing",
+  "nameAr": "دعاية وإعلان",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5280",
+  "nameEn": "Travel and transportation",
+  "nameAr": "سفر وتنقلات",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5290",
+  "nameEn": "Government fees and licences",
+  "nameAr": "رسوم ورخص حكومية",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5300",
+  "nameEn": "Insurance expense",
+  "nameAr": "مصروف تأمين",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5310",
+  "nameEn": "Bank charges and commissions",
+  "nameAr": "عمولات ومصاريف بنكية",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5320",
+  "nameEn": "Hospitality and cleaning",
+  "nameAr": "ضيافة ونظافة",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5330",
+  "nameEn": "Donations",
+  "nameAr": "تبرعات",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5400",
+  "nameEn": "Depreciation expense",
+  "nameAr": "مصروف الاستهلاك",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5410",
+  "nameEn": "Amortisation expense",
+  "nameAr": "مصروف الإطفاء",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5420",
+  "nameEn": "Expected credit loss expense",
+  "nameAr": "مصروف الخسائر الائتمانية المتوقعة",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5500",
+  "nameEn": "Finance costs",
+  "nameAr": "تكاليف تمويل",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5510",
+  "nameEn": "Foreign exchange differences",
+  "nameAr": "فروقات عملة",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ },
+ {
+  "code": "5600",
+  "nameEn": "Income tax expense",
+  "nameAr": "مصروف ضريبة الدخل",
+  "accountClass": "expense",
+  "normalBalance": "debit"
+ }
+]

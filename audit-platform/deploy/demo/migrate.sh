@@ -16,3 +16,7 @@ echo "==> demo firm"
 "${psql_q[@]}" -v ctx_key_id=demo-k1 -v ctx_key="$CTX_SIGNING_KEY" -v api_password="$API_DB_PASSWORD" \
   -v issuer="https://${LOGIN_HOST}/realms/jordan-audit" -v web_client=audit-web \
   -v llm_allowed="$LLM_ALLOWED" -f /seed/demo.sql
+
+# Keep the firm's AI setting in step with .env (e.g. a key added later).
+"${psql_q[@]}" -Atc "SELECT platform.set_llm_mapping_allowed(id, '${LLM_ALLOWED}' = 'true') FROM platform.tenants WHERE slug = 'jordan-audit'" >/dev/null
+echo "==> AI mapping for the demo firm: ${LLM_ALLOWED}"

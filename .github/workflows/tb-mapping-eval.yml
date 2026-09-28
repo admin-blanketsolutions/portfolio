@@ -1,0 +1,61 @@
+name: tb-mapping-eval
+
+# Runs the AI account-mapping eval against the real model: accuracy on 171
+# hand-labelled trial-balance lines (EN/AR) and a prompt-injection security
+# gate. Manual only: each run costs a few dollars of API usage.
+# Needs the repository secret ANTHROPIC_API_KEY.
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Model to evaluate
+        default: claude-opus-5
+      effort:
+        description: Effort level (low, medium, high)
+        default: medium
+      reps:
+        description: Repetitions per trial balance (more = tighter confidence interval, higher cost)
+        default: '1'
+
+permissions:
+  contents: read
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: audit-platform/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: audit-platform/backend/package-lock.json
+      - name: Check the API key is configured
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::Add the repository secret ANTHROPIC_API_KEY (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+      - name: Build
+        run: npm ci && npm run build
+      - name: Run the eval
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          node evals/tb-mapping/run-eval.mjs --model "${{ inputs.model }}" --effort "${{ inputs.effort }}" \
+            --reps "${{ inputs.reps }}" --out eval-out
+      - name: Report
+        if: always()
+        run: cat eval-out/summary.md >> "$GITHUB_STEP_SUMMARY" || echo "No summary (see the log)." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tb-mapping-eval
+          path: audit-platform/backend/eval-out
+          retention-days: 30

@@ -36,6 +36,15 @@ export class EngagementsController {
     return this.db.transaction((tx) => this.repo.fsRollup(tx, engagementId), { readOnly: true, isolation: 'repeatable read' });
   }
 
+  /** Draft balance sheet and income statement from the locked trial balance. */
+  @Get(':id/statements')
+  async statements(@Param('id') id: string) {
+    const engagementId = parse(EngagementId, id);
+    const result = await this.db.transaction((tx) => this.repo.statements(tx, engagementId), { readOnly: true, isolation: 'repeatable read' });
+    if (!result) throw new DomainError('not_found', 'Not found.');
+    return result;
+  }
+
   @Post(':id/stage')
   async changeStage(@Param('id') id: string, @Body() body: unknown) {
     const engagementId = parse(EngagementId, id);

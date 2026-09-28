@@ -255,6 +255,10 @@ describe.skipIf(!enabled)('TB ingestion end-to-end: upload -> sandbox -> cascade
   });
 
   it('locks only for senior staff, and the locked TB feeds the FS roll-up', async () => {
+    // No statements until a trial balance is locked.
+    const before = await call('GET', `/engagements/${eng()}/statements`, 'senior');
+    expect(before.status).toBe(200);
+    expect(before.body).toMatchObject({ trialBalance: null, balanceSheet: [], incomeStatement: [] });
     expect((await call('POST', `/trial-balances/${tbId}/lock`, 'junior')).status).toBe(403);
     const locked = await call('POST', `/trial-balances/${tbId}/lock`, 'senior');
     expect(locked.status).toBe(200);
@@ -262,6 +266,25 @@ describe.skipIf(!enabled)('TB ingestion end-to-end: upload -> sandbox -> cascade
     const at = (p: string) => roll.body.find((r: any) => r.path === p)?.adjusted;
     expect(at('BS.ASSETS.CASH')).toBe('100000.0000');
     expect(at('IS.REVENUE')).toBe('-200000.0000');
+
+    // Draft statements: natural signs, profit carried into equity, balance check.
+    const st = await call('GET', `/engagements/${eng()}/statements`, 'junior');
+    expect(st.status).toBe(200);
+    expect(st.body.trialBalance).toMatchObject({ id: tbId });
+    expect(st.body.totals).toEqual({ assets: '150000.0000', liabilitiesAndEquity: '150000.0000', profit: '50000.0000', balanced: true });
+    const amount = (code: string) => [...st.body.balanceSheet, ...st.body.incomeStatement].find((n: any) => n.code === code)?.amount;
+    expect(amount('1000')).toBe('100000.0000');
+    expect(amount('2000')).toBe('30000.0000');                                     // liabilities shown positive
+    expect(amount('4000')).toBe('200000.0000');                                    // revenue shown positive
+    expect(amount('5000')).toBe('120000.0000');
+    expect(amount('3100')).toBeUndefined();                                        // no balance: left out
+    const sections = st.body.balanceSheet.filter((n: any) => n.level === 1).map((n: any) => n.code);
+    expect(sections).toEqual(['BSA', 'BSL', 'BSE']);                               // assets, liabilities, equity
+    expect(st.body.integrity.every((i: any) => i.ok)).toBe(true);
+    // Ethical walls: engagement headers are visible firm-wide, content is not.
+    const walled = await call('GET', `/engagements/${fx.engagements['ENG-WALL']}/statements`, 'junior');
+    expect(walled.body).toMatchObject({ trialBalance: null, balanceSheet: [], incomeStatement: [] });
+    expect((await call('GET', `/engagements/${fx.engagements['ENG-B']}/statements`, 'junior')).status).toBe(404);   // other tenant
     expect((await call('POST', `/trial-balances/${tbId}/lock`, 'senior')).status).toBe(404);
   });
 

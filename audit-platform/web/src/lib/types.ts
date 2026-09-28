@@ -79,3 +79,23 @@ export interface CoaAccount {
   id: string; code: string; path: string; nameEn: string; nameAr: string; accountClass: string;
   normalBalance: 'debit' | 'credit'; isPostable: boolean;
 }
+
+export interface StatementNode {
+  code: string;
+  path: string;
+  nameEn: string;
+  nameAr: string;
+  level: number;
+  isPostable: boolean;
+  accountClass: string;
+  amount: string;
+}
+
+export interface Statements {
+  currency: string | null;
+  trialBalance: { id: string; version: number; asOfDate: string; lockedAt: string; sourceFilename: string } | null;
+  balanceSheet: StatementNode[];
+  incomeStatement: StatementNode[];
+  totals: { assets: string; liabilitiesAndEquity: string; profit: string; balanced: boolean };
+  integrity: Array<{ check: string; ok: boolean }>;
+}

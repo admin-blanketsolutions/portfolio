@@ -161,6 +161,18 @@ def test_duplicate_codes_and_missing_names_are_warned():
     assert lines_by_code(r)["3"]["name"] == "3"
 
 
+def test_bilingual_headers():
+    rows = [["Code / الرمز", "Account name / اسم الحساب", "Debit | مدين", "Credit | دائن"],
+            ["101", "Cash / النقد", 100, None], ["201", "Capital / رأس المال", None, 100]]
+    r = parse_bytes(xlsx_bytes(rows), "xlsx")
+    assert r["layout"] == "dr_cr_as_closing"
+    assert [l["closing"] for l in r["lines"]] == ["100.0000", "-100.0000"]
+    # Halves that name different roles are not guessed at.
+    with pytest.raises(ParseError) as exc:
+        parse_bytes(xlsx_bytes([["Code", "Debit / دائن", "Credit"], ["1", 1, 1]]), "xlsx")
+    assert exc.value.code == "header_not_found"
+
+
 def test_ambiguous_and_missing_headers():
     with pytest.raises(ParseError) as exc:
         parse_bytes(xlsx_bytes([["Code", "Name", "Balance", "Balance"], ["1", "x", 1, 1]]), "xlsx")

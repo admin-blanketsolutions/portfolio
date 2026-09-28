@@ -1,0 +1,21 @@
+# TLS_MODE: an e-mail address (public certificates from Let's Encrypt) or
+# "internal" (local testing with Caddy's own CA).
+
+{$APP_HOST} {
+	tls {$TLS_MODE}
+	encode gzip
+	handle_path /api/* {
+		reverse_proxy api:3000
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+}
+
+{$LOGIN_HOST} {
+	tls {$TLS_MODE}
+	# The Keycloak admin console is not exposed; use an SSH tunnel if needed.
+	@admin path /admin /admin/*
+	respond @admin 404
+	reverse_proxy keycloak:8080
+}

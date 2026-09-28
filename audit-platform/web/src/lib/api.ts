@@ -1,4 +1,4 @@
-import type { CoaAccount, Engagement, LineFilter, LinesPage, Me, TbImport, TrialBalance } from './types';
+import type { CoaAccount, Engagement, LineFilter, LinesPage, Me, Statements, TbImport, TrialBalance } from './types';
 
 export class ApiError extends Error {
   constructor(readonly status: number, readonly code: string, message: string) {
@@ -75,6 +75,7 @@ export class ApiClient {
   manualMapping = (tbId: string, lineId: string, coaCode: string, rationale: string) =>
     this.request<{ mappingId: string }>('POST', `/trial-balances/${encodeURIComponent(tbId)}/lines/${encodeURIComponent(lineId)}/mapping`, { json: { coaCode, rationale } });
   lock = (tbId: string) => this.request<{ status: string; lockedAt: string }>('POST', `/trial-balances/${encodeURIComponent(tbId)}/lock`, { json: {} });
+  statements = (engagementId: string) => this.request<Statements>('GET', `/engagements/${encodeURIComponent(engagementId)}/statements`);
   coa = () => this.request<{ accounts: CoaAccount[] }>('GET', '/coa?postable=true');
 }
 

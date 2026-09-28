@@ -11,7 +11,22 @@ export type MappingFlag =
   | 'concentration'              // unusually many lines mapped to one account
   | 'low_confidence';
 
-const INSTRUCTION_EN = /\b(ignore|disregard|forget|override|instructions?|prompt|system|assistant|you are|you must|respond|reply|output|json|map (every|all|each|everything)|classify (every|all|each))\b/i;
+// Phrases that address the reader rather than describe an account. Single words
+// that also occur in real account names ("output tax", "IT systems", "prompt
+// payment discount") are deliberately not enough on their own.
+const INSTRUCTION_EN = new RegExp([
+  String.raw`\b(ignore|disregard|forget|override)\b.{0,40}\b(instructions?|previous|above|rules?|prompt)\b`,
+  String.raw`\binstructions?\b`,
+  String.raw`\byou (are|must|should|will)\b`,
+  String.raw`\b(system|assistant|user)\s*:`,
+  String.raw`\bsystem prompt\b`,
+  String.raw`\b(output|return|respond with|reply with)\s+(json|coa_code|the code|code)\b`,
+  String.raw`\bcoa_code\b`,
+  String.raw`\b(map|classify|assign|put|move)\s+(every|all|each|them all|them|these|everything)\b`,
+  String.raw`\b(all|every|each)\s+(other\s+)?(lines?|accounts|entries|refs?)\b`,
+  String.raw`\b(use|map to)\s+(account|code)\s+\d+`,
+  String.raw`\bline\s+L\d+\b`,
+].join('|'), 'i');
 const INSTRUCTION_AR = /(تجاهل|تعليمات|أنت الآن|انت الان|قم بتصنيف|صنف كل|اربط كل)/u;
 const URL_LIKE = /(https?:\/\/|www\.|\.(com|net|io|ai)\b)/i;
 const MARKUP = /[{}<>`]|\[\[|\]\]/;

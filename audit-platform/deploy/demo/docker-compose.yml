@@ -1,0 +1,145 @@
+# Hosted demo of the audit platform: ONE server, SYNTHETIC DATA ONLY.
+#
+#   ./setup.sh            # once: writes .env with generated secrets
+#   docker compose up -d --build
+#
+# Caddy terminates HTTPS for the firm's address (APP_HOST) and the sign-in
+# address (LOGIN_HOST); nothing else is published. See README.md.
+name: audit-demo
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: audit
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run setup.sh}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init-keycloak.sh:/docker-entrypoint-initdb.d/10-keycloak.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d audit"]
+      interval: 5s
+      retries: 30
+
+  # One-shot: applies the migrations and the demo firm on first start.
+  migrate:
+    image: postgres:16
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      PGHOST: postgres
+      PGUSER: postgres
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: audit
+      CTX_SIGNING_KEY: ${CTX_SIGNING_KEY:?}
+      API_DB_PASSWORD: ${API_DB_PASSWORD:?}
+      LOGIN_HOST: ${LOGIN_HOST:?}
+      LLM_ALLOWED: ${MAPPING_LLM_ENABLED:-false}
+    volumes:
+      - ../../db/migrations:/db/migrations:ro
+      - ./seed:/seed:ro
+      - ./migrate.sh:/migrate.sh:ro
+    entrypoint: ["bash", "/migrate.sh"]
+    restart: "no"
+
+  keycloak:
+    image: docker.io/keycloak/keycloak:26.3
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_HOSTNAME: https://${LOGIN_HOST}
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD:?}
+      # Placeholders in the realm file:
+      APP_ORIGIN: https://${APP_HOST}
+      DEMO_PASSWORD_PARTNER: ${DEMO_PASSWORD_PARTNER:?}
+      DEMO_PASSWORD_MANAGER: ${DEMO_PASSWORD_MANAGER:?}
+      DEMO_PASSWORD_SENIOR: ${DEMO_PASSWORD_SENIOR:?}
+      DEMO_PASSWORD_JUNIOR: ${DEMO_PASSWORD_JUNIOR:?}
+    command: ["start", "--import-realm"]
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import:ro
+
+  api:
+    build:
+      context: ../..
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      ca-export: { condition: service_completed_successfully }
+    environment:
+      # Demo profile: in-memory file store and the rlimited subprocess parser
+      # are allowed (production requires S3 + the network-less container).
+      NODE_ENV: development
+      PORT: "3000"
+      DATABASE_URL: postgresql://audit_api:${API_DB_PASSWORD}@postgres:5432/audit
+      CTX_SIGNING_KEY_ID: demo-k1
+      CTX_SIGNING_KEY: ${CTX_SIGNING_KEY}
+      JOB_ENVELOPE_KEY: ${JOB_ENVELOPE_KEY:?}
+      OIDC_AUDIENCE: audit-platform-api
+      TENANT_BASE_DOMAIN: ${DEMO_DOMAIN:?}
+      DEPLOYMENT_REGION: me-central-1
+      MAPPING_LLM_ENABLED: ${MAPPING_LLM_ENABLED:-false}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Local mode only: trust Caddy's internal CA when talking to Keycloak.
+      NODE_EXTRA_CA_CERTS: ${API_EXTRA_CA:-}
+    volumes:
+      - local_ca:/local-ca:ro
+
+  # Local mode only (TLS_MODE=internal): publish Caddy's root certificate
+  # (public) so the API can verify the sign-in server; exits at once otherwise.
+  ca-export:
+    image: caddy:2
+    depends_on:
+      caddy: { condition: service_started }
+    environment:
+      TLS_MODE: ${TLS_MODE}
+    volumes:
+      - caddy_data:/data:ro
+      - local_ca:/local-ca
+    entrypoint: ["sh", "-c", "[ \"$$TLS_MODE\" != internal ] && exit 0; for i in $$(seq 1 60); do [ -f /data/caddy/pki/authorities/local/root.crt ] && cp /data/caddy/pki/authorities/local/root.crt /local-ca/root.crt && chmod 644 /local-ca/root.crt && exit 0; sleep 1; done; exit 1"]
+    restart: "no"
+
+  web:
+    build:
+      context: ../../web
+    restart: unless-stopped
+    environment:
+      AUTH_CONNECT_SRC: https://${LOGIN_HOST}
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      APP_HOST: ${APP_HOST}
+      LOGIN_HOST: ${LOGIN_HOST}
+      TLS_MODE: ${TLS_MODE:?}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      default:
+        # Containers reach the sign-in address through Caddy directly
+        # (no hairpin through the public IP).
+        aliases: ["${LOGIN_HOST}", "${APP_HOST}"]
+
+volumes:
+  local_ca:
+  pgdata:
+  caddy_data:
+  caddy_config:

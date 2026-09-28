@@ -71,6 +71,20 @@ def header_text(value: object) -> str:
     return normalize_for_matching(_PARENS.sub(" ", str(value)))
 
 
+_BILINGUAL_SPLIT = re.compile(r"[/|\\\n]")
+
+
+def _bilingual(value: object, group: str) -> str | None:
+    """Bilingual headers are common in Jordan: "Account name / اسم الحساب",
+    "Debit | مدين". Split the RAW text (normalisation drops the separator) and
+    accept the column when every recognised half names the same role."""
+    if not isinstance(value, str) or not _BILINGUAL_SPLIT.search(value):
+        return None
+    roles = {_classify(header_text(part), group) for part in _BILINGUAL_SPLIT.split(value)}
+    roles.discard(None)
+    return roles.pop() if len(roles) == 1 else None
+
+
 def _classify(here: str, group: str) -> str | None:
     if not here:
         return None
@@ -149,7 +163,7 @@ def detect(rows: list[tuple[object, ...]], first_row_no: int = 1) -> Layout:
         dup: set[str] = set()
         for j, text in enumerate(here):
             group = above[j] if j < len(above) else ""
-            role = _classify(text, group)
+            role = _classify(text, group) or _bilingual(row[j], group)
             if role is None:
                 continue
             if role in found:

@@ -1,0 +1,16 @@
+**/node_modules
+**/dist
+**/.next
+**/.next-idp
+**/test-results
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.hypothesis
+web
+deploy
+docs
+idp
+backend/evals
+backend/test
+parser/tests

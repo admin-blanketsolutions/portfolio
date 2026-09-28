@@ -8,6 +8,8 @@ const config: NextConfig = {
   reactStrictMode: true,
   // Separate build outputs let the mocked-API and real-IdP browser suites coexist.
   distDir: process.env.NEXT_DIST_DIR ?? '.next',
+  // Container images ship the self-contained server (web/Dockerfile).
+  ...(process.env.NEXT_OUTPUT === 'standalone' ? { output: 'standalone' as const } : {}),
   agentRules: false,                 // do not generate AGENTS.md / CLAUDE.md into the repository
   poweredByHeader: false,
   async headers() {

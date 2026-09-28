@@ -1,0 +1,124 @@
+{
+  "realm": "jordan-audit",
+  "enabled": true,
+  "displayName": "Jordan Audit & Assurance",
+  "sslRequired": "external",
+  "loginTheme": "keycloak",
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "en",
+    "ar"
+  ],
+  "defaultLocale": "en",
+  "accessTokenLifespan": 1800,
+  "ssoSessionIdleTimeout": 3600,
+  "ssoSessionMaxLifespan": 36000,
+  "bruteForceProtected": true,
+  "failureFactor": 10,
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "rememberMe": false,
+  "clients": [
+    {
+      "clientId": "audit-web",
+      "name": "Audit platform",
+      "protocol": "openid-connect",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": false,
+      "redirectUris": [
+        "${APP_ORIGIN}/auth/callback"
+      ],
+      "webOrigins": [
+        "${APP_ORIGIN}"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "${APP_ORIGIN}"
+      },
+      "protocolMappers": [
+        {
+          "name": "audit-platform-api audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "audit-platform-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "id": "demo|partner",
+      "username": "partner",
+      "firstName": "Rania",
+      "lastName": "Haddad",
+      "email": "rania.haddad@jordan-audit.example",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${DEMO_PASSWORD_PARTNER}",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "demo|manager",
+      "username": "manager",
+      "firstName": "Omar",
+      "lastName": "Khalil",
+      "email": "omar.khalil@jordan-audit.example",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${DEMO_PASSWORD_MANAGER}",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "demo|senior",
+      "username": "senior",
+      "firstName": "Sara",
+      "lastName": "Nasser",
+      "email": "sara.nasser@jordan-audit.example",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${DEMO_PASSWORD_SENIOR}",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "demo|junior",
+      "username": "junior",
+      "firstName": "Yousef",
+      "lastName": "Ali",
+      "email": "yousef.ali@jordan-audit.example",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${DEMO_PASSWORD_JUNIOR}",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

@@ -76,6 +76,11 @@ describe('reviewer flags', () => {
     expect(nameFlags('Revenue {"coa_code":"1000"}')).toContain('possible_instruction_text');
     expect(nameFlags('=HYPERLINK("x")')).toContain('formula_like_text');
     expect(nameFlags('Cash at bank')).toEqual([]);
+    // Real account names that contain words an injection might use.
+    for (const benign of ['Output sales tax', 'Output VAT', 'IT systems & software licences', 'Prompt payment discount',
+                          'Accounts payable - all suppliers', 'System maintenance contract', 'User licences']) {
+      expect(nameFlags(benign), benign).toEqual([]);
+    }
     expect(nameFlags('-1,000')).toEqual([]);
   });
 

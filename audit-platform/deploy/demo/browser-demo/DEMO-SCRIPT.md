@@ -1,6 +1,6 @@
 # Demo script: Blanket Audit, with the AI copilot
 
-About 12 minutes, plus questions. Each step says **what to click** and **what to say**. Lines in *italics* are suggested wording; say them in your own words.
+About 13 minutes, plus questions. Each step says **what to click** and **what to say**. Lines in *italics* are suggested wording; say them in your own words.
 
 **The one idea to land:** the client already knows what audit software does. What he hasn't seen is an AI that does the first pass of the work: mapping, analysis, risks and drafting. It shows its reasoning, a person approves everything, and every step is logged. Keep coming back to that.
 

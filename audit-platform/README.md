@@ -11,6 +11,7 @@ A multi-tenant SaaS core for audit firms (ISA / ISQM, IFRS, ISO/IEC 27001, Jorda
 | 3.3 | Backend skeleton for secure tenant context switching | [`backend/src/`](backend/src) |
 | P3.1 | Trial-balance import & AI-assisted mapping: sandboxed parser, mapping cascade, review API, lock | [`parser/`](parser), [`V0010`](db/migrations/V0010__tb_ingestion_and_mapping.sql), [`backend/src/modules/tb-ingestion/`](backend/src/modules/tb-ingestion) |
 | Demo | Hosted demo on one server (synthetic firm, real sign-in, sample TBs, draft statements) | [`deploy/demo/`](deploy/demo) |
+| Browser demo | Single-page sales demo with the AI copilot, runnable in claude.ai with no server; demo script and recorded walkthrough | [`deploy/demo/browser-demo/`](deploy/demo/browser-demo) |
 | D1 | Deployable storage, sandbox and sign-in: S3 + Object Lock adapter, network-less parser container, OIDC discovery, sign-in tested against a real Keycloak | [`backend/src/storage/`](backend/src/storage), [`parser/Dockerfile`](parser/Dockerfile), [`idp/keycloak/`](idp/keycloak), [Deploying](#deploying) |
 | P3.2 | Mapping review UI (Next.js, EN/AR + RTL, strict CSP), per-tenant web login config, `/auth/config` + `/me` | [`web/`](web), [`V0011`](db/migrations/V0011__web_login_config.sql), [`backend/src/modules/session/`](backend/src/modules/session) |
 
@@ -50,6 +51,7 @@ audit-platform/
 │   ├── scripts/          dev-stack.mjs (local API + dev tokens), link-test-idp.mjs (test DB -> test Keycloak)
 │   └── test/             unit · integration · HTTP e2e (135 tests)
 ├── deploy/demo/                                  one-server hosted demo: compose, seed, sample TBs, guide
+│   └── browser-demo/                             single-file sales demo with the AI copilot, demo script
 ├── idp/keycloak/                                 TEST realms + start script for real-IdP sign-in tests
 ├── web/                                          Next.js review UI (see web/README.md)
 │   ├── app/ · src/       pages, components, API client, OIDC PKCE auth, EN/AR catalogs, amount formatting

@@ -10,6 +10,8 @@ The demo firm is **Jordan Audit & Assurance (Demo)**. It has:
 
 > **Synthetic data only.** This profile keeps uploaded files in memory and parses them in a resource-limited process instead of the network-less container. Do not upload real client files. Production uses S3 with Object Lock and the container sandbox; see the main README, "Deploying".
 
+> **No server yet?** [`browser-demo/`](browser-demo) is a single-page version of this demo, including the AI copilot. It runs in claude.ai with nothing to host, and comes with a [demo script](browser-demo/DEMO-SCRIPT.md).
+
 ## Addresses
 
 With the domain `demo.blanketsolutions.net`:
